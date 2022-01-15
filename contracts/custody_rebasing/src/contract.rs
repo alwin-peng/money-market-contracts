@@ -37,10 +37,10 @@ pub fn instantiate(
 ) -> StdResult<Response> {
     let config = Config {
         owner: deps.api.addr_canonicalize(&msg.owner)?,
-        oracle: deps.api.addr_canonicalize(&msg.owner)?,
+        oracle: deps.api.addr_canonicalize(&msg.oracle)?,
         overseer_contract: deps.api.addr_canonicalize(&msg.overseer_contract)?,
         collateral_token: deps.api.addr_canonicalize(&msg.collateral_token)?,
-        underlying_token: deps.api.addr_canonicalize(&msg.collateral_token)?,
+        underlying_token: deps.api.addr_canonicalize(&msg.underlying_token)?,
         market_contract: deps.api.addr_canonicalize(&msg.market_contract)?,
         liquidation_contract: deps.api.addr_canonicalize(&msg.liquidation_contract)?,
         stable_denom: msg.stable_denom,
@@ -55,12 +55,12 @@ pub fn instantiate(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response<TerraMsgWrapper>, ContractError> {
     match msg {
-        ExecuteMsg::Receive(msg) => receive_cw20(deps, info, msg),
+        ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
         ExecuteMsg::UpdateConfig {
             owner,
             liquidation_contract,
@@ -97,6 +97,7 @@ pub fn execute(
 
 pub fn receive_cw20(
     mut deps: DepsMut,
+    env: Env,
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
 ) -> Result<Response<TerraMsgWrapper>, ContractError> {
@@ -111,10 +112,14 @@ pub fn receive_cw20(
             }
 
             let cw20_sender_addr = deps.api.addr_validate(&cw20_msg.sender)?;
-            let total_collateral_amount =
-                query_token_balance(deps.as_ref(), info.sender.clone(), cw20_sender_addr.clone())?
-                    - cw20_msg.amount.clone().into();
-            update_rebasing_rewards(&mut deps, &config, total_collateral_amount)?;
+
+            let total_collateral_amount = query_token_balance(
+                deps.as_ref(),
+                info.sender.clone(),
+                env.contract.address.clone(),
+            )?;
+
+            update_rebasing_rewards(&mut deps, &config, total_collateral_amount -  cw20_msg.amount.clone().into())?;
             deposit_collateral(deps, cw20_sender_addr, cw20_msg.amount.into())
         }
         _ => Err(ContractError::MissingDepositCollateralHook {}),
