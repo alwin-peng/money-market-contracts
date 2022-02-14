@@ -483,7 +483,7 @@ pub fn update_epoch_state(
         ]))
 }
 
-pub fn fund_reserve(deps: DepsMut, info: MessageInfo) -> StdResult<Response> {
+pub fn fund_reserve(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
     let sent_uusd = match info.funds.iter().find(|x| x.denom == "uusd") {
         Some(coin) => coin.amount,
         None => Uint128::zero(),
