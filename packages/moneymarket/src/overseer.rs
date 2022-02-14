@@ -97,6 +97,12 @@ pub enum ExecuteMsg {
     /// Permissionless operations
     /////////////////////////////
     LiquidateCollateral { borrower: String },
+
+    /// Allows a user to directly add funds to the yield reserve without
+    /// the added funds counting towards ANC buybacks
+    FundReserve {
+
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
