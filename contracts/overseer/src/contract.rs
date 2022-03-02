@@ -11,6 +11,8 @@ use crate::collateral::{
 };
 use crate::error::ContractError;
 use crate::querier::query_epoch_state;
+use crate::querier::query_market_state;
+
 use crate::state::{
     read_config, read_epoch_state, read_whitelist, read_whitelist_elem, store_config,
     store_epoch_state, store_whitelist_elem, Config, EpochState, WhitelistElem,
@@ -20,6 +22,7 @@ use cosmwasm_bignumber::{Decimal256, Uint256};
 use moneymarket::common::optional_addr_validate;
 use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
 use moneymarket::market::EpochStateResponse;
+use moneymarket::market::StateResponse;
 use moneymarket::market::ExecuteMsg as MarketExecuteMsg;
 use moneymarket::overseer::{
     ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg, WhitelistResponse, WhitelistResponseElem,
@@ -48,6 +51,9 @@ pub fn instantiate(
             buffer_distribution_factor: msg.buffer_distribution_factor,
             anc_purchase_factor: msg.anc_purchase_factor,
             price_timeframe: msg.price_timeframe,
+            dyn_rate_epoch: msg.dyn_rate_epoch,
+            dyn_rate_threshold: msg.dyn_rate_threshold,
+            dyn_rate_maxchange: msg.dyn_rate_maxchange,
         },
     )?;
 
@@ -59,6 +65,7 @@ pub fn instantiate(
             prev_interest_buffer: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
             last_executed_height: env.block.height,
+            prev_yield_reserve: Decimal256::zero(),
         },
     )?;
 
@@ -288,8 +295,10 @@ pub fn update_whitelist(
 }
 
 pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
-    let config: Config = read_config(deps.storage)?;
+    let mut config: Config = read_config(deps.storage)?;
     let state: EpochState = read_epoch_state(deps.storage)?;
+   
+    // check whether call came to early
     if env.block.height < state.last_executed_height + config.epoch_period {
         return Err(ContractError::EpochNotPassed(state.last_executed_height));
     }
@@ -306,11 +315,41 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         None,
     )?;
 
+    // check whether its time to re-evaluate rate
+    if !state.prev_yield_reserve.is_zero() && env.block.height > state.last_executed_height + config.dyn_rate_epoch {
+        let market_state: StateResponse = query_market_state(
+            deps.as_ref(),
+            market_contract.clone(),
+            env.block.height,
+        )?;
+       
+        // yuild reserve amt
+        let yuild_reserve = market_state.total_reserves; 
+
+        // direction of rate change
+        let up_down = yuild_reserve > state.prev_yield_reserve;        
+
+        // normalized change in yr during dyn_rate_epoch 
+        let yuild_reserve_change = (if up_down {yuild_reserve - state.prev_yield_reserve} else  {state.prev_yield_reserve - yuild_reserve}) / yuild_reserve;
+        
+        // change exceeded rate threshold, need to update rates
+        if yuild_reserve_change >= config.dyn_rate_threshold {
+            let  rate_change = Decimal256::min(config.dyn_rate_maxchange, yuild_reserve_change);        
+            // update rates
+            config.threshold_deposit_rate = if up_down { config.threshold_deposit_rate + config.threshold_deposit_rate * rate_change } 
+                                            else       { config.threshold_deposit_rate - config.threshold_deposit_rate * rate_change};
+            config.target_deposit_rate =    if up_down { config.target_deposit_rate + config.target_deposit_rate * rate_change } 
+                                            else       { config.target_deposit_rate - config.target_deposit_rate * rate_change};
+
+        }
+    }
+
     // effective_deposit_rate = cur_exchange_rate / prev_exchange_rate
     // deposit_rate = (effective_deposit_rate - 1) / blocks
     let effective_deposit_rate = epoch_state.exchange_rate / state.prev_exchange_rate;
     let deposit_rate =
         (effective_deposit_rate - Decimal256::one()) / Decimal256::from_uint256(blocks);
+   
 
     let mut messages: Vec<CosmosMsg> = vec![];
     let mut interest_buffer = query_balance(
@@ -440,6 +479,12 @@ pub fn update_epoch_state(
         Some(distributed_interest),
     )?;
 
+    let market_state: StateResponse = query_market_state(
+        deps.as_ref(),
+        market_contract.clone(),
+        env.block.height,
+    )?;
+
     // effective_deposit_rate = cur_exchange_rate / prev_exchange_rate
     // deposit_rate = (effective_deposit_rate - 1) / blocks
     let effective_deposit_rate =
@@ -456,6 +501,7 @@ pub fn update_epoch_state(
             prev_exchange_rate: market_epoch_state.exchange_rate,
             prev_interest_buffer: interest_buffer,
             deposit_rate,
+            prev_yield_reserve: market_state.total_reserves,
         },
     )?;
 

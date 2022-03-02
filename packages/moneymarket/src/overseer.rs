@@ -35,6 +35,12 @@ pub struct InstantiateMsg {
     pub anc_purchase_factor: Decimal256,
     /// Valid oracle price timeframe
     pub price_timeframe: u64,
+    /// # of blocks per each dynamic rate change period
+    pub dyn_rate_epoch: u64,
+    /// rate threshold to trigger rate update
+    pub dyn_rate_threshold: Decimal256,
+    /// maximum rate change during update
+    pub dyn_rate_maxchange: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

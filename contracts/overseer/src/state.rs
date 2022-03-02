@@ -28,6 +28,9 @@ pub struct Config {
     pub buffer_distribution_factor: Decimal256,
     pub anc_purchase_factor: Decimal256,
     pub price_timeframe: u64,
+    pub dyn_rate_epoch: u64,
+    pub dyn_rate_threshold: Decimal256,
+    pub dyn_rate_maxchange: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -37,6 +40,7 @@ pub struct EpochState {
     pub prev_exchange_rate: Decimal256,
     pub prev_interest_buffer: Uint256,
     pub last_executed_height: u64,
+    pub prev_yield_reserve: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
