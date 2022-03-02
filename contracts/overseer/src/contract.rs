@@ -323,18 +323,18 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
             env.block.height,
         )?;
        
-        // yuild reserve amt
-        let yuild_reserve = market_state.total_reserves; 
+        // yield reserve amt
+        let yield_reserve = market_state.total_reserves; 
 
         // direction of rate change
-        let up_down = yuild_reserve > state.prev_yield_reserve;        
+        let up_down = yield_reserve > state.prev_yield_reserve;        
 
         // normalized change in yr during dyn_rate_epoch 
-        let yuild_reserve_change = (if up_down {yuild_reserve - state.prev_yield_reserve} else  {state.prev_yield_reserve - yuild_reserve}) / yuild_reserve;
+        let yield_reserve_change = (if up_down {yield_reserve - state.prev_yield_reserve} else  {state.prev_yield_reserve - yield_reserve}) / yield_reserve;
         
         // change exceeded rate threshold, need to update rates
-        if yuild_reserve_change >= config.dyn_rate_threshold {
-            let  rate_change = Decimal256::min(config.dyn_rate_maxchange, yuild_reserve_change);        
+        if yield_reserve_change >= config.dyn_rate_threshold {
+            let  rate_change = Decimal256::min(config.dyn_rate_maxchange, yield_reserve_change);        
             // update rates
             config.threshold_deposit_rate = if up_down { config.threshold_deposit_rate + config.threshold_deposit_rate * rate_change } 
                                             else       { config.threshold_deposit_rate - config.threshold_deposit_rate * rate_change};
