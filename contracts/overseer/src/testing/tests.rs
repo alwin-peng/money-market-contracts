@@ -78,8 +78,7 @@ fn proper_initialization() {
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
             prev_interest_buffer: Uint256::zero(),
-            prev_yield_reserve: Decimal256::zero(),
-        }
+         }
     );
 }
 
@@ -476,7 +475,6 @@ fn execute_epoch_operations() {
             prev_aterra_supply: Uint256::from_str("1000000").unwrap(),
             prev_interest_buffer: Uint256::from_str("9999000000").unwrap(),
             deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),
-            prev_yield_reserve: Decimal256::from_str("1000000").unwrap(),
         },
     )
     .unwrap();
@@ -707,7 +705,6 @@ fn update_epoch_state() {
             prev_exchange_rate: epoch_state_response.exchange_rate,
             prev_interest_buffer: Uint256::from(10000000000u128),
             last_executed_height: env.block.height,
-            prev_yield_reserve: Decimal256::from_str("1000000").unwrap(),
         }
     )
 }
@@ -1360,8 +1357,7 @@ fn dynamic_rate_model() {
             prev_exchange_rate: Decimal256::from_str("1.2").unwrap(),
             prev_aterra_supply: Uint256::from_str("1000000").unwrap(),
             prev_interest_buffer: Uint256::from_str("9999000000").unwrap(),
-            deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),
-            prev_yield_reserve: Decimal256::from_str("1000000").unwrap(),
+            deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),            
         },
     )
     .unwrap();
