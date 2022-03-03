@@ -14,8 +14,8 @@ use crate::querier::query_epoch_state;
 use crate::querier::query_market_state;
 
 use crate::state::{
-    read_config, read_epoch_state, read_whitelist, read_whitelist_elem, store_config,
-    store_epoch_state, store_whitelist_elem, Config, EpochState, WhitelistElem,
+    read_config, read_epoch_state, read_dynrate_state, read_whitelist, read_whitelist_elem, store_config,
+    store_epoch_state, store_dynrate_state, store_whitelist_elem, Config, EpochState, DynrateState, WhitelistElem,
 };
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -64,7 +64,14 @@ pub fn instantiate(
             prev_aterra_supply: Uint256::zero(),
             prev_interest_buffer: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
-            last_executed_height: env.block.height,
+            last_executed_height: env.block.height,            
+        },
+    )?;
+
+    store_dynrate_state(
+        deps.storage,
+        &DynrateState {
+            last_executed_height: env.block.height,       
             prev_yield_reserve: Decimal256::zero(),
         },
     )?;
@@ -295,8 +302,9 @@ pub fn update_whitelist(
 }
 
 pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
-    let mut config: Config = read_config(deps.storage)?;
-    let state: EpochState = read_epoch_state(deps.storage)?;
+    let mut config: Config  = read_config(deps.storage)?;
+    let state: EpochState   = read_epoch_state(deps.storage)?;
+    let dynrate_state       = read_dynrate_state(deps.storage)?;
    
     // check whether call came to early
     if env.block.height < state.last_executed_height + config.epoch_period {
@@ -316,7 +324,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
     )?;
 
     // check whether its time to re-evaluate rate
-    if !state.prev_yield_reserve.is_zero() && env.block.height > state.last_executed_height + config.dyn_rate_epoch {
+    if !dynrate_state.prev_yield_reserve.is_zero() && env.block.height > state.last_executed_height + config.dyn_rate_epoch {
         let market_state: StateResponse = query_market_state(
             deps.as_ref(),
             market_contract.clone(),
@@ -327,21 +335,31 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         let yield_reserve = market_state.total_reserves; 
 
         // direction of rate change
-        let up_down = yield_reserve > state.prev_yield_reserve;        
+        let up_down = yield_reserve > dynrate_state.prev_yield_reserve;        
 
         // normalized change in yr during dyn_rate_epoch 
-        let yield_reserve_change = (if up_down {yield_reserve - state.prev_yield_reserve} else  {state.prev_yield_reserve - yield_reserve}) / yield_reserve;
+        let yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} else  {dynrate_state.prev_yield_reserve - yield_reserve}) / yield_reserve;
         
         // change exceeded rate threshold, need to update rates
         if yield_reserve_change >= config.dyn_rate_threshold {
             let  rate_change = Decimal256::min(config.dyn_rate_maxchange, yield_reserve_change);        
             // update rates
+            // TODO: probably change to absolute values of percentages here
             config.threshold_deposit_rate = if up_down { config.threshold_deposit_rate + config.threshold_deposit_rate * rate_change } 
                                             else       { config.threshold_deposit_rate - config.threshold_deposit_rate * rate_change};
             config.target_deposit_rate =    if up_down { config.target_deposit_rate + config.target_deposit_rate * rate_change } 
                                             else       { config.target_deposit_rate - config.target_deposit_rate * rate_change};
 
         }
+
+        // store updated epoch state
+        store_dynrate_state(
+            deps.storage,
+            &DynrateState {
+                last_executed_height: env.block.height,
+                prev_yield_reserve: yield_reserve     
+            },
+        )?;
     }
 
     // effective_deposit_rate = cur_exchange_rate / prev_exchange_rate
@@ -500,8 +518,7 @@ pub fn update_epoch_state(
             prev_aterra_supply: market_epoch_state.aterra_supply,
             prev_exchange_rate: market_epoch_state.exchange_rate,
             prev_interest_buffer: interest_buffer,
-            deposit_rate,
-            prev_yield_reserve: market_state.total_reserves,
+            deposit_rate,           
         },
     )?;
 
