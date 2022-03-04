@@ -239,8 +239,8 @@ impl WasmMockQuerier {
                 match from_binary(msg).unwrap() {
                     QueryMsg::State {
                         block_height: _,
-                    } => match self.epoch_state_querier.epoch_state.get(contract_addr) {
-                        Some(v) => {
+                    } => match self.epoch_state_querier.epoch_state.get(contract_addr) { // TODO:
+                        Some(_v) => {
                             SystemResult::Ok(ContractResult::from(to_binary(&StateResponse {
                                 total_liabilities: Decimal256::zero(),
                                 total_reserves: Decimal256::zero(),

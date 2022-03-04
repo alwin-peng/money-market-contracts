@@ -1,7 +1,7 @@
 use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use crate::querier::query_epoch_state;
-use crate::state::{read_epoch_state, store_epoch_state, EpochState};
+use crate::state::{read_epoch_state, store_epoch_state, store_dynrate_state, EpochState, DynrateState};
 use crate::testing::mock_querier::mock_dependencies;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -1268,7 +1268,7 @@ fn dynamic_rate_model() {
         buffer_distribution_factor: Decimal256::percent(20),
         anc_purchase_factor: Decimal256::percent(20),
         price_timeframe: 60u64,
-        dyn_rate_epoch: 86400u64,
+        dyn_rate_epoch: 86300u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
     };
@@ -1330,6 +1330,19 @@ fn dynamic_rate_model() {
         &(Uint256::from(1000000u64), Decimal256::percent(120)),
     )]);
 
+
+
+    // lets screw up state to trigger rate update
+    store_dynrate_state(
+        deps.as_mut().storage,
+        &DynrateState {
+            last_executed_height: env.block.height,
+            prev_yield_reserve: Decimal256::from_str("1000000.0").unwrap(),
+        },
+    )
+    .unwrap();
+
+
     // (120 / 100 - 1) / 86400
     // deposit rate = 0.000002314814814814
     // accrued_buffer = 10,000,000,000
@@ -1341,7 +1354,7 @@ fn dynamic_rate_model() {
         res.attributes,
         vec![
             attr("action", "epoch_operations"),
-            attr("deposit_rate", "0.000002314814814814"),
+            attr("deposit_rate", "0.000002384259259258"),
             attr("exchange_rate", "1.2"),
             attr("aterra_supply", "1000000"),
             attr("distributed_interest", "0"),
@@ -1357,10 +1370,12 @@ fn dynamic_rate_model() {
             prev_exchange_rate: Decimal256::from_str("1.2").unwrap(),
             prev_aterra_supply: Uint256::from_str("1000000").unwrap(),
             prev_interest_buffer: Uint256::from_str("9999000000").unwrap(),
-            deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),            
+            deposit_rate: Decimal256::from_str("0.000002384259259258").unwrap(),            
         },
     )
     .unwrap();
+
+  
 
     // If deposit rate is bigger than threshold
     deps.querier.with_epoch_state(&[(
@@ -1375,6 +1390,17 @@ fn dynamic_rate_model() {
 
     env.block.height += 86400u64;
 
+      // lets screw up state to trigger rate update
+      store_dynrate_state(
+        deps.as_mut().storage,
+        &DynrateState {
+            last_executed_height: env.block.height,
+            prev_yield_reserve: Decimal256::from_str("1000000.0").unwrap(),
+        },
+    )
+    .unwrap();
+
+
     // accrued_buffer = 1,000,000
     // interest_buffer = 9,999,000,000
     // (125 / 120 - 1) / 86400
@@ -1385,10 +1411,10 @@ fn dynamic_rate_model() {
         res.attributes,
         vec![
             attr("action", "epoch_operations"),
-            attr("deposit_rate", "0.000000482253086419"),
+            attr("deposit_rate", "0.000000496720679011"),
             attr("exchange_rate", "1.25"),
             attr("aterra_supply", "1000000"),
-            attr("distributed_interest", "53148"),
+            attr("distributed_interest", "45596"),
             attr("anc_purchase_amount", "200000")
         ]
     );

@@ -316,21 +316,17 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
 
     // Compute next epoch state
     let market_contract = deps.api.addr_humanize(&config.market_contract)?;
-    let epoch_state: EpochStateResponse = query_epoch_state(
-        deps.as_ref(),
-        market_contract.clone(),
-        env.block.height,
-        None,
-    )?;
+  
 
     // check whether its time to re-evaluate rate
+    let  mut rate_change    = Decimal256::zero();
+    let  up_down        = true;
     if !dynrate_state.prev_yield_reserve.is_zero() && env.block.height > state.last_executed_height + config.dyn_rate_epoch {
         let market_state: StateResponse = query_market_state(
             deps.as_ref(),
             market_contract.clone(),
             env.block.height,
         )?;
-       
         // yield reserve amt
         let yield_reserve = market_state.total_reserves; 
 
@@ -338,18 +334,20 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         let up_down = yield_reserve > dynrate_state.prev_yield_reserve;        
 
         // normalized change in yr during dyn_rate_epoch 
-        let yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} else  {dynrate_state.prev_yield_reserve - yield_reserve}) / yield_reserve;
-        
+        let yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} 
+                                    else  {dynrate_state.prev_yield_reserve - yield_reserve}) / dynrate_state.prev_yield_reserve;
+              
         // change exceeded rate threshold, need to update rates
         if yield_reserve_change >= config.dyn_rate_threshold {
-            let  rate_change = Decimal256::min(config.dyn_rate_maxchange, yield_reserve_change);        
+            rate_change = Decimal256::min(config.dyn_rate_maxchange, yield_reserve_change);        
+           
             // update rates
-            // TODO: probably change to absolute values of percentages here
             config.threshold_deposit_rate = if up_down { config.threshold_deposit_rate + config.threshold_deposit_rate * rate_change } 
                                             else       { config.threshold_deposit_rate - config.threshold_deposit_rate * rate_change};
             config.target_deposit_rate =    if up_down { config.target_deposit_rate + config.target_deposit_rate * rate_change } 
                                             else       { config.target_deposit_rate - config.target_deposit_rate * rate_change};
-
+            
+            store_config(deps.storage, &config)?;
         }
 
         // store updated epoch state
@@ -362,11 +360,22 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         )?;
     }
 
+    let epoch_state: EpochStateResponse = query_epoch_state(
+        deps.as_ref(),
+        market_contract.clone(),
+        env.block.height,
+        None,
+    )?;
+
     // effective_deposit_rate = cur_exchange_rate / prev_exchange_rate
     // deposit_rate = (effective_deposit_rate - 1) / blocks
     let effective_deposit_rate = epoch_state.exchange_rate / state.prev_exchange_rate;
-    let deposit_rate =
+    let mut deposit_rate =
         (effective_deposit_rate - Decimal256::one()) / Decimal256::from_uint256(blocks);
+
+    // adjust dep rate if adjustment necessary
+    deposit_rate =  if up_down { deposit_rate + deposit_rate * rate_change } 
+                    else       { deposit_rate - deposit_rate * rate_change };
    
 
     let mut messages: Vec<CosmosMsg> = vec![];
@@ -495,12 +504,6 @@ pub fn update_epoch_state(
         market_contract.clone(),
         env.block.height,
         Some(distributed_interest),
-    )?;
-
-    let market_state: StateResponse = query_market_state(
-        deps.as_ref(),
-        market_contract.clone(),
-        env.block.height,
     )?;
 
     // effective_deposit_rate = cur_exchange_rate / prev_exchange_rate
