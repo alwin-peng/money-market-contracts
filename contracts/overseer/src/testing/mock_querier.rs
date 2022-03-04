@@ -10,7 +10,7 @@ use cosmwasm_std::{
 use std::collections::HashMap;
 
 use moneymarket::liquidation::LiquidationAmountResponse;
-use moneymarket::market::{BorrowerInfoResponse, EpochStateResponse};
+use moneymarket::market::{BorrowerInfoResponse, EpochStateResponse, StateResponse};
 use moneymarket::oracle::PriceResponse;
 use moneymarket::tokens::TokensHuman;
 
@@ -19,6 +19,10 @@ use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrap
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
+    /// Market state to market contract
+    State {
+        block_height: Option<u64>,
+    },    
     /// Query epoch state to market contract
     EpochState {
         block_height: Option<u64>,
@@ -233,6 +237,27 @@ impl WasmMockQuerier {
             }
             QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => {
                 match from_binary(msg).unwrap() {
+                    QueryMsg::State {
+                        block_height: _,
+                    } => match self.epoch_state_querier.epoch_state.get(contract_addr) {
+                        Some(v) => {
+                            SystemResult::Ok(ContractResult::from(to_binary(&StateResponse {
+                                total_liabilities: Decimal256::zero(),
+                                total_reserves: Decimal256::zero(),
+                                last_interest_updated: 0,
+                                last_reward_updated: 0,
+                                global_interest_index: Decimal256::zero(),
+                                global_reward_index: Decimal256::zero(),
+                                anc_emission_rate: Decimal256::zero(),
+                                prev_aterra_supply: Uint256::zero(),
+                                prev_exchange_rate: Decimal256::zero(),                               
+                            })))
+                        }
+                        None => SystemResult::Err(SystemError::InvalidRequest {
+                            error: "No epoch state exists".to_string(),
+                            request: msg.as_slice().into(),
+                        }),
+                    },
                     QueryMsg::EpochState {
                         block_height: _,
                         distributed_interest: _,
