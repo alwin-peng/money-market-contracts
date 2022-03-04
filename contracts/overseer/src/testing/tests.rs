@@ -1269,8 +1269,8 @@ fn dynamic_rate_model() {
         anc_purchase_factor: Decimal256::percent(20),
         price_timeframe: 60u64,
         dyn_rate_epoch: 86300u64,
-        dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_maxchange: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_threshold: Decimal256::from_str("0.03").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -1354,7 +1354,7 @@ fn dynamic_rate_model() {
         res.attributes,
         vec![
             attr("action", "epoch_operations"),
-            attr("deposit_rate", "0.000002384259259258"),
+            attr("deposit_rate", "0.000002349537037036"),
             attr("exchange_rate", "1.2"),
             attr("aterra_supply", "1000000"),
             attr("distributed_interest", "0"),
@@ -1411,10 +1411,10 @@ fn dynamic_rate_model() {
         res.attributes,
         vec![
             attr("action", "epoch_operations"),
-            attr("deposit_rate", "0.000000496720679011"),
+            attr("deposit_rate", "0.000000489486882715"),
             attr("exchange_rate", "1.25"),
             attr("aterra_supply", "1000000"),
-            attr("distributed_interest", "45596"),
+            attr("distributed_interest", "49348"),
             attr("anc_purchase_amount", "200000")
         ]
     );

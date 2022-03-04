@@ -16,6 +16,9 @@ use moneymarket::tokens::TokensHuman;
 
 use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
 
+use std::str::FromStr;
+
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
@@ -246,7 +249,7 @@ impl WasmMockQuerier {
                                 total_reserves: Decimal256::zero(),
                                 last_interest_updated: 0,
                                 last_reward_updated: 0,
-                                global_interest_index: Decimal256::zero(),
+                                global_interest_index: Decimal256::from_str("1000000.0").unwrap(),
                                 global_reward_index: Decimal256::zero(),
                                 anc_emission_rate: Decimal256::zero(),
                                 prev_aterra_supply: Uint256::zero(),
