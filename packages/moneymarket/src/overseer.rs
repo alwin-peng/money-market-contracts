@@ -110,6 +110,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     Config {},
     EpochState {},
+    DynrateState {},
     Whitelist {
         collateral_token: Option<String>,
         start_after: Option<String>,
@@ -178,4 +179,9 @@ pub struct AllCollateralsResponse {
 pub struct BorrowLimitResponse {
     pub borrower: String,
     pub borrow_limit: Uint256,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct DynrateResponse {
+    pub prev_deposit_rate: Decimal256,
 }

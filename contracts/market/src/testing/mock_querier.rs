@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use cw20::TokenInfoResponse;
 use moneymarket::distribution_model::AncEmissionRateResponse;
 use moneymarket::interest_model::BorrowRateResponse;
-use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse};
+use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse, DynrateResponse};
 use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -37,6 +37,8 @@ pub enum QueryMsg {
         threshold_deposit_rate: Decimal256,
         current_emission_rate: Decimal256,
     },
+    /// Query dynamic deposit rate to overseer
+    DynrateState {}, 
     /// Query overseer config to get target deposit rate
     Config {},
     /// Query cw20 Token Info
@@ -251,6 +253,11 @@ impl WasmMockQuerier {
                     } => SystemResult::Ok(ContractResult::from(to_binary(
                         &AncEmissionRateResponse {
                             emission_rate: Decimal256::from_uint256(5u64),
+                        },
+                    ))),
+                    QueryMsg::DynrateState {} => SystemResult::Ok(ContractResult::from(to_binary(
+                        &DynrateResponse {
+                            prev_deposit_rate: Decimal256::from_ratio(1, 100),
                         },
                     ))),
                     QueryMsg::Config {} => {

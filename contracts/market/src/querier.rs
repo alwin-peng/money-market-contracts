@@ -3,7 +3,7 @@ use cosmwasm_std::{to_binary, Addr, Deps, QueryRequest, StdResult, WasmQuery};
 
 use moneymarket::distribution_model::{AncEmissionRateResponse, QueryMsg as DistributionQueryMsg};
 use moneymarket::interest_model::{BorrowRateResponse, QueryMsg as InterestQueryMsg};
-use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse, QueryMsg as OverseerQueryMsg};
+use moneymarket::overseer::{BorrowLimitResponse, ConfigResponse, DynrateResponse, QueryMsg as OverseerQueryMsg};
 
 pub fn query_borrow_rate(
     deps: Deps,
@@ -73,4 +73,14 @@ pub fn query_target_deposit_rate(deps: Deps, overseer_contract: Addr) -> StdResu
         }))?;
 
     Ok(overseer_config.target_deposit_rate)
+}
+
+pub fn query_dynamic_rate(deps: Deps, overseer_addr: Addr) -> StdResult<Decimal256> {
+    let dynrate_response: DynrateResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: overseer_addr.to_string(),
+            msg: to_binary(&OverseerQueryMsg::DynrateState {})?,
+        }))?;
+
+    Ok(dynrate_response.prev_deposit_rate)
 }
