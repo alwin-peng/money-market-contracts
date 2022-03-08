@@ -347,7 +347,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         
         // consider increase expectation
         yield_reserve_change = if yield_reserve_change > dynrate_config.dyn_rate_yr_increase_expectation {yield_reserve_change-dynrate_config.dyn_rate_yr_increase_expectation} 
-                               else {dynrate_config.dyn_rate_yr_increase_expectation};
+                               else {yield_reserve_change};
 
         // change exceeded rate threshold, need to update variable rate
         let mut rate_delta  = Decimal256::zero();
