@@ -28,7 +28,8 @@ use moneymarket::overseer::{
     ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg, WhitelistResponse, WhitelistResponseElem,
 };
 use moneymarket::querier::{deduct_tax, query_balance};
-use std::str::FromStr;
+
+pub const BLOCKS_PER_YEAR: u128 = 4656810;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -376,7 +377,7 @@ fn update_deposit_rate(
 
         // change exceeded rate threshold, need to update variable rate
         // recalc values from confing to a per block
-        let year = Decimal256::from_str("4656810").unwrap();
+        let year = Decimal256::from_uint256(BLOCKS_PER_YEAR);
         let dynrate_maxchange_pb = dynrate_config.dyn_rate_maxchange / year;
         let dynrate_threshold_pb = dynrate_config.dyn_rate_threshold / year;
         let mut rate_delta = Decimal256::zero();
