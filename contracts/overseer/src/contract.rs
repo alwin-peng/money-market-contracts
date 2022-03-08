@@ -347,10 +347,10 @@ fn update_deposit_rate(
         let yield_reserve = Decimal256::from_uint256(interest_buffer);
 
         // direction of rate change
-        let up_down = yield_reserve > dynrate_state.prev_yield_reserve;
+        let yr_went_up = yield_reserve > dynrate_state.prev_yield_reserve;
 
         // normalized change in yr during dyn_rate_epoch
-        let yield_reserve_change = (if up_down {
+        let yield_reserve_change = (if yr_went_up {
             yield_reserve - dynrate_state.prev_yield_reserve
         } else {
             dynrate_state.prev_yield_reserve - yield_reserve
@@ -383,7 +383,7 @@ fn update_deposit_rate(
 
             // update rates (this happens only on dyn_rate_epoch!)
             config.target_deposit_rate =
-                update_rate(config.target_deposit_rate, rate_delta, up_down);
+                update_rate(config.target_deposit_rate, rate_delta, yr_went_up);
             config.threshold_deposit_rate = config.target_deposit_rate;
             store_config(deps.storage, &config)?;
         }
@@ -394,7 +394,7 @@ fn update_deposit_rate(
             &DynrateState {
                 last_executed_height: env.block.height,
                 prev_yield_reserve: yield_reserve,
-                update_vector: up_down,
+                update_vector: yr_went_up,
                 rate_delta,
             },
         )?;
