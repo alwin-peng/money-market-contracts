@@ -59,6 +59,7 @@ pub fn instantiate(
             dyn_rate_epoch:     msg.dyn_rate_epoch,
             dyn_rate_threshold: msg.dyn_rate_threshold,
             dyn_rate_maxchange: msg.dyn_rate_maxchange,
+            dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
         }
     )?;
 
@@ -341,9 +342,12 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         let up_down = yield_reserve > dynrate_state.prev_yield_reserve;        
 
         // normalized change in yr during dyn_rate_epoch 
-        let yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} 
+        let mut yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} 
                                     else  {dynrate_state.prev_yield_reserve - yield_reserve}) / dynrate_state.prev_yield_reserve;
-
+        
+        // consider increase expectation
+        yield_reserve_change = if yield_reserve_change > dynrate_config.dyn_rate_yr_increase_expectation {yield_reserve_change-dynrate_config.dyn_rate_yr_increase_expectation} 
+                               else {dynrate_config.dyn_rate_yr_increase_expectation};
 
         // change exceeded rate threshold, need to update variable rate
         let mut rate_delta  = Decimal256::zero();
@@ -352,8 +356,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
             let blks   = Uint256::from(env.block.height - dynrate_state.last_executed_height);
             rate_delta = Decimal256::min(dynrate_config.dyn_rate_maxchange, yield_reserve_change) / Decimal256::from_uint256(blks);        
           
-            // update rates (this happens only on dyn_rate_epoch!)
-         
+            // update rates (this happens only on dyn_rate_epoch!)         
             config.target_deposit_rate = update_rate(config.target_deposit_rate, rate_delta, up_down);
             config.threshold_deposit_rate = config.target_deposit_rate;
             store_config(deps.storage, &config)?;

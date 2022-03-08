@@ -41,6 +41,8 @@ pub struct InstantiateMsg {
     pub dyn_rate_threshold: Decimal256,
     /// maximum rate change during update
     pub dyn_rate_maxchange: Decimal256,
+    /// amout of slack in yr change to trigger rate update
+    pub dyn_rate_yr_increase_expectation: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

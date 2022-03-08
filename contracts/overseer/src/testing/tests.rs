@@ -41,6 +41,7 @@ fn proper_initialization() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     let info = mock_info("addr0000", &[]);
@@ -103,6 +104,7 @@ fn update_config() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -205,6 +207,7 @@ fn whitelist() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -353,7 +356,8 @@ fn execute_epoch_operations() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),        
+        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),        
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -581,6 +585,7 @@ fn update_epoch_state() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -730,6 +735,7 @@ fn lock_collateral() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -887,6 +893,7 @@ fn unlock_collateral() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -1100,6 +1107,7 @@ fn liquidate_collateral() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -1271,6 +1279,7 @@ fn dynamic_rate_model() {
         dyn_rate_epoch: 86300u64,
         dyn_rate_maxchange: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.03").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success

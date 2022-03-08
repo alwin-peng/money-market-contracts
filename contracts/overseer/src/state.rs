@@ -37,6 +37,7 @@ pub struct DynrateConfig {
     pub dyn_rate_epoch: u64,
     pub dyn_rate_threshold: Decimal256,
     pub dyn_rate_maxchange: Decimal256,
+    pub dyn_rate_yr_increase_expectation: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
