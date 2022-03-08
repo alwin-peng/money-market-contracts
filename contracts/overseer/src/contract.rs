@@ -347,7 +347,7 @@ fn update_deposit_rate(
         let yield_reserve = Decimal256::from_uint256(interest_buffer);
 
         // direction of rate change
-        let yr_went_up = yield_reserve > dynrate_state.prev_yield_reserve;
+        let mut yr_went_up = yield_reserve > dynrate_state.prev_yield_reserve;
 
         // normalized change in yr during dyn_rate_epoch
         let yield_reserve_change = (if yr_went_up {
@@ -364,10 +364,14 @@ fn update_deposit_rate(
             dynrate_config.dyn_rate_yr_increase_expectation / Decimal256::from_uint256(blks);
 
         // consider increase expectation
-        yield_reserve_change_pb = if yield_reserve_change_pb > increase_expectation_pb {
+        yield_reserve_change_pb = if !yr_went_up {
+            yield_reserve_change + increase_expectation_pb
+        } else if yield_reserve_change_pb > increase_expectation_pb {
             yield_reserve_change_pb - increase_expectation_pb
         } else {
-            yield_reserve_change_pb
+            // sign switched here
+            yr_went_up = !yr_went_up;
+            increase_expectation_pb - yield_reserve_change_pb
         };
 
         // change exceeded rate threshold, need to update variable rate
