@@ -7,7 +7,7 @@ use crate::borrow::{
 };
 use crate::deposit::{compute_exchange_rate_raw, deposit_stable, redeem_stable};
 use crate::error::ContractError;
-use crate::querier::{query_anc_emission_rate, query_borrow_rate, query_target_deposit_rate, query_dynamic_rate};
+use crate::querier::{query_anc_emission_rate, query_borrow_rate, query_target_deposit_rate};
 use crate::response::MsgInstantiateContractResponse;
 use crate::state::{read_config, read_state, store_config, store_state, Config, State};
 
@@ -550,15 +550,9 @@ pub fn query_epoch_state(
             state.total_reserves,
         )?;
 
-        /*
         let target_deposit_rate: Decimal256 =
             query_target_deposit_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
-        */
-
-        // query dynamic rate
-        let target_deposit_rate: Decimal256 =
-            query_dynamic_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
-
+        
         // Compute interest rate to return latest epoch state
         compute_interest_raw(
             &mut state,

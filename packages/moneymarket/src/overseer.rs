@@ -180,8 +180,3 @@ pub struct BorrowLimitResponse {
     pub borrower: String,
     pub borrow_limit: Uint256,
 }
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct DynrateResponse {
-    pub prev_deposit_rate: Decimal256,
-}

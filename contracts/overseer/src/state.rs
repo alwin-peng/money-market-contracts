@@ -9,6 +9,7 @@ use moneymarket::overseer::{CollateralsResponse, WhitelistResponseElem};
 use moneymarket::tokens::Tokens;
 
 const KEY_CONFIG: &[u8] = b"config";
+const KEY_DYNRATE_CONFIG: &[u8] = b"dynrate_config";
 const KEY_EPOCH_STATE: &[u8] = b"epoch_state";
 const KEY_DYNRATE_STATE: &[u8] = b"dynrate_state";
 
@@ -28,7 +29,11 @@ pub struct Config {
     pub target_deposit_rate: Decimal256,
     pub buffer_distribution_factor: Decimal256,
     pub anc_purchase_factor: Decimal256,
-    pub price_timeframe: u64,
+    pub price_timeframe: u64,   
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct DynrateConfig {
     pub dyn_rate_epoch: u64,
     pub dyn_rate_threshold: Decimal256,
     pub dyn_rate_maxchange: Decimal256,
@@ -47,7 +52,8 @@ pub struct EpochState {
 pub struct DynrateState {
     pub last_executed_height: u64,
     pub prev_yield_reserve: Decimal256,
-    pub prev_deposit_rate: Decimal256,
+    pub rate_delta: Decimal256,
+    pub update_vector: bool, 
 } 
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -64,6 +70,14 @@ pub fn store_config(storage: &mut dyn Storage, data: &Config) -> StdResult<()> {
 
 pub fn read_config(storage: &dyn Storage) -> StdResult<Config> {
     ReadonlySingleton::new(storage, KEY_CONFIG).load()
+}
+
+pub fn store_dynrate_config(storage: &mut dyn Storage, data: &DynrateConfig) -> StdResult<()> {
+    Singleton::new(storage, KEY_DYNRATE_CONFIG).save(data)
+}
+
+pub fn read_dynrate_config(storage: &dyn Storage) -> StdResult<DynrateConfig> {
+    ReadonlySingleton::new(storage, KEY_DYNRATE_CONFIG).load()
 }
 
 pub fn store_epoch_state(storage: &mut dyn Storage, data: &EpochState) -> StdResult<()> {

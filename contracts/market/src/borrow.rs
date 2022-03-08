@@ -11,7 +11,7 @@ use moneymarket::querier::{deduct_tax, query_balance, query_supply};
 
 use crate::deposit::compute_exchange_rate_raw;
 use crate::error::ContractError;
-use crate::querier::{query_borrow_limit, query_borrow_rate, query_target_deposit_rate, query_dynamic_rate};
+use crate::querier::{query_borrow_limit, query_borrow_rate, query_target_deposit_rate};
 use crate::state::{
     read_borrower_info, read_borrower_infos, read_config, read_state, store_borrower_info,
     store_state, BorrowerInfo, Config, State,
@@ -267,15 +267,9 @@ pub fn compute_interest(
         state.total_reserves,
     )?;
 
-    /*
     let target_deposit_rate: Decimal256 =
         query_target_deposit_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
-    */
-
-    // query dynamic rate
-    let target_deposit_rate: Decimal256 =
-        query_dynamic_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
-
+        
     compute_interest_raw(
         state,
         block_height,

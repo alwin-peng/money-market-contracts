@@ -13,8 +13,8 @@ use crate::error::ContractError;
 use crate::querier::query_epoch_state;
 
 use crate::state::{
-    read_config, read_epoch_state, read_dynrate_state, read_whitelist, read_whitelist_elem, store_config,
-    store_epoch_state, store_dynrate_state, store_whitelist_elem, Config, EpochState, DynrateState, WhitelistElem,
+    read_config, read_dynrate_config, read_epoch_state, read_dynrate_state, read_whitelist, read_whitelist_elem, store_config, store_dynrate_config,
+    store_epoch_state, store_dynrate_state, store_whitelist_elem, Config, DynrateConfig, EpochState, DynrateState, WhitelistElem,
 };
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -49,10 +49,17 @@ pub fn instantiate(
             buffer_distribution_factor: msg.buffer_distribution_factor,
             anc_purchase_factor: msg.anc_purchase_factor,
             price_timeframe: msg.price_timeframe,
+          
+        },
+    )?;
+
+    store_dynrate_config(
+        deps.storage,
+        &DynrateConfig {
             dyn_rate_epoch:     msg.dyn_rate_epoch,
             dyn_rate_threshold: msg.dyn_rate_threshold,
             dyn_rate_maxchange: msg.dyn_rate_maxchange,
-        },
+        }
     )?;
 
     store_epoch_state(
@@ -71,8 +78,8 @@ pub fn instantiate(
         &DynrateState {
             last_executed_height: env.block.height,       
             prev_yield_reserve: Decimal256::zero(),
-            // initialize it with target rate
-            prev_deposit_rate: msg.target_deposit_rate,
+            rate_delta: Decimal256::zero(),
+            update_vector: true,            
         },
     )?;
 
@@ -303,24 +310,19 @@ pub fn update_whitelist(
 
 fn update_rate(old_rate: Decimal256, rate_change: Decimal256, direction: bool) ->  Decimal256
 {
-    if direction {old_rate + old_rate * rate_change} else {old_rate - old_rate * rate_change}
+    if direction {old_rate + rate_change} else if old_rate > rate_change {old_rate - rate_change} else { old_rate }
 }
 
 pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
-    let config: Config      = read_config(deps.storage)?;
-    let state: EpochState   = read_epoch_state(deps.storage)?;
-    let dynrate_state       = read_dynrate_state(deps.storage)?;
+    let mut config: Config                  = read_config(deps.storage)?;
+    let dynrate_config: DynrateConfig   = read_dynrate_config(deps.storage)?;
+    let state: EpochState               = read_epoch_state(deps.storage)?;
+    let dynrate_state: DynrateState     = read_dynrate_state(deps.storage)?;
    
     // check whether call came to early
     if env.block.height < state.last_executed_height + config.epoch_period {
         return Err(ContractError::EpochNotPassed(state.last_executed_height));
     }
-
-    // # of blocks from the last executed height
-    let blocks = Uint256::from(env.block.height - state.last_executed_height);
-
-    // Compute next epoch state
-    let market_contract = deps.api.addr_humanize(&config.market_contract)?;  
 
     // retrieve interest buffer
     let mut messages: Vec<CosmosMsg> = vec![];
@@ -331,8 +333,7 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
     )?;
 
     // check whether its time to re-evaluate rate
-    if !dynrate_state.prev_yield_reserve.is_zero() && env.block.height > state.last_executed_height + config.dyn_rate_epoch {
-       
+    if !dynrate_state.prev_yield_reserve.is_zero() && env.block.height > dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch {       
         // yield reserve amt
         let yield_reserve = Decimal256::from_uint256(interest_buffer); 
 
@@ -342,16 +343,20 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         // normalized change in yr during dyn_rate_epoch 
         let yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} 
                                     else  {dynrate_state.prev_yield_reserve - yield_reserve}) / dynrate_state.prev_yield_reserve;
-              
-        // change exceeded rate threshold, need to update variable rate
-        let mut dyn_rate = dynrate_state.prev_deposit_rate;
 
-        if yield_reserve_change >= config.dyn_rate_threshold {
-            // take either yr change or maxchange, whatever smaller
-            let rate_change = Decimal256::min(config.dyn_rate_maxchange, yield_reserve_change);        
+
+        // change exceeded rate threshold, need to update variable rate
+        let mut rate_delta  = Decimal256::zero();
+        if yield_reserve_change >= dynrate_config.dyn_rate_threshold {
+            // take either yr change or maxchange, whatever smaller and calc rate adjustment per block
+            let blks   = Uint256::from(env.block.height - dynrate_state.last_executed_height);
+            rate_delta = Decimal256::min(dynrate_config.dyn_rate_maxchange, yield_reserve_change) / Decimal256::from_uint256(blks);        
           
             // update rates (this happens only on dyn_rate_epoch!)
-            dyn_rate = update_rate(dyn_rate, rate_change, up_down); 
+         
+            config.target_deposit_rate = update_rate(config.target_deposit_rate, rate_delta, up_down);
+            config.threshold_deposit_rate = config.target_deposit_rate;
+            store_config(deps.storage, &config)?;
         }
 
         // store updated epoch state
@@ -360,11 +365,14 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
             &DynrateState {
                 last_executed_height: env.block.height,
                 prev_yield_reserve: yield_reserve,
-                prev_deposit_rate: dyn_rate,  
+                update_vector: up_down,
+                rate_delta: rate_delta,                  
             },
         )?;
-    }
+    };
 
+    // Compute next epoch state
+    let market_contract = deps.api.addr_humanize(&config.market_contract)?;  
     let epoch_state: EpochStateResponse = query_epoch_state(
         deps.as_ref(),
         market_contract.clone(),
@@ -374,10 +382,16 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
 
     // effective_deposit_rate = cur_exchange_rate / prev_exchange_rate
     // deposit_rate = (effective_deposit_rate - 1) / blocks
+    let dynrate_state_qry: DynrateState = read_dynrate_state(deps.storage)?;
     let effective_deposit_rate = epoch_state.exchange_rate / state.prev_exchange_rate;
 
+    // # of blocks from the last executed height
+    let blocks = Uint256::from(env.block.height - state.last_executed_height);
+
     let deposit_rate =
-        (effective_deposit_rate - Decimal256::one()) / Decimal256::from_uint256(blocks);  
+        update_rate((effective_deposit_rate - Decimal256::one()) / Decimal256::from_uint256(blocks), 
+            dynrate_state_qry.rate_delta, 
+            dynrate_state_qry.update_vector);  
 
     // Send accrued_buffer * config.anc_purchase_factor amount stable token to collector
     let accrued_buffer = interest_buffer - state.prev_interest_buffer;
@@ -406,9 +420,9 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
     let mut distributed_interest: Uint256 = Uint256::zero();
 
     // difference to a variable rate set on dyn_rate_epoch basis
-    if deposit_rate < dynrate_state.prev_deposit_rate {
+    if deposit_rate < config.threshold_deposit_rate {
         // missing_deposit_rate(_per_block)
-        let missing_deposit_rate = dynrate_state.prev_deposit_rate - deposit_rate;
+        let missing_deposit_rate = config.threshold_deposit_rate - deposit_rate;
         let prev_deposits = state.prev_aterra_supply * state.prev_exchange_rate;
 
         // missing_deposits = prev_deposits * missing_deposit_rate(_per_block) * blocks
