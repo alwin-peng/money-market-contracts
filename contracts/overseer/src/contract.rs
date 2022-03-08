@@ -26,6 +26,7 @@ use moneymarket::overseer::{
     ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg, WhitelistResponse, WhitelistResponseElem,
 };
 use moneymarket::querier::{deduct_tax, query_balance};
+use std::str::FromStr;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -333,8 +334,11 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         config.stable_denom.to_string(),
     )?;
 
+   
     // check whether its time to re-evaluate rate
-    if !dynrate_state.prev_yield_reserve.is_zero() && env.block.height > dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch {       
+    if !dynrate_state.prev_yield_reserve.is_zero() && env.block.height > dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch {     
+        let blks   = Uint256::from(env.block.height - dynrate_state.last_executed_height);
+
         // yield reserve amt
         let yield_reserve = Decimal256::from_uint256(interest_buffer); 
 
@@ -342,19 +346,28 @@ pub fn execute_epoch_operations(deps: DepsMut, env: Env) -> Result<Response, Con
         let up_down = yield_reserve > dynrate_state.prev_yield_reserve;        
 
         // normalized change in yr during dyn_rate_epoch 
-        let mut yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} 
+        let yield_reserve_change = (if up_down {yield_reserve - dynrate_state.prev_yield_reserve} 
                                     else  {dynrate_state.prev_yield_reserve - yield_reserve}) / dynrate_state.prev_yield_reserve;
+
+        // yr change per block
+        let mut yield_reserve_change_pb = yield_reserve_change / Decimal256::from_uint256(blks);
+
+        // increase expectation pb
+        let increase_expectation_pb = dynrate_config.dyn_rate_yr_increase_expectation / Decimal256::from_uint256(blks);
         
         // consider increase expectation
-        yield_reserve_change = if yield_reserve_change > dynrate_config.dyn_rate_yr_increase_expectation {yield_reserve_change-dynrate_config.dyn_rate_yr_increase_expectation} 
-                               else {yield_reserve_change};
-
+        yield_reserve_change_pb = if yield_reserve_change_pb > increase_expectation_pb {yield_reserve_change_pb - increase_expectation_pb} else {yield_reserve_change_pb};
+      
         // change exceeded rate threshold, need to update variable rate
+        // recalc values from confing to a per block
+        let year = Decimal256::from_str("4656810").unwrap();
+        let dynrate_maxchange_pb = dynrate_config.dyn_rate_maxchange / year;
+        let dynrate_threshold_pb = dynrate_config.dyn_rate_threshold / year;
         let mut rate_delta  = Decimal256::zero();
-        if yield_reserve_change >= dynrate_config.dyn_rate_threshold {
-            // take either yr change or maxchange, whatever smaller and calc rate adjustment per block
-            let blks   = Uint256::from(env.block.height - dynrate_state.last_executed_height);
-            rate_delta = Decimal256::min(dynrate_config.dyn_rate_maxchange, yield_reserve_change) / Decimal256::from_uint256(blks);        
+
+        if yield_reserve_change_pb >= dynrate_threshold_pb {
+            // thats adjustment to a rate per block based on yr change
+            rate_delta = Decimal256::min(dynrate_maxchange_pb, yield_reserve_change_pb);        
           
             // update rates (this happens only on dyn_rate_epoch!)         
             config.target_deposit_rate = update_rate(config.target_deposit_rate, rate_delta, up_down);

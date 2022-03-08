@@ -1279,7 +1279,7 @@ fn dynamic_rate_model() {
         dyn_rate_epoch: 86300u64,
         dyn_rate_maxchange: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.00011").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -1405,7 +1405,7 @@ fn dynamic_rate_model() {
         deps.as_mut().storage,
         &DynrateState {
             last_executed_height: env.block.height,
-            prev_yield_reserve: Decimal256::from_str("10000.0").unwrap(),
+            prev_yield_reserve: Decimal256::from_str("100000.0").unwrap(),
             rate_delta: Decimal256::zero(),
             update_vector: true,
         },
@@ -1424,7 +1424,7 @@ fn dynamic_rate_model() {
         res.attributes,
         vec![
             attr("action", "epoch_operations"),
-            attr("deposit_rate", "0.00000065586419753"),
+            attr("deposit_rate", "0.000000485474175533"),
             attr("exchange_rate", "1.25"),
             attr("aterra_supply", "1000000"),
             attr("distributed_interest", "53148"),
