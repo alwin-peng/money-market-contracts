@@ -1272,7 +1272,7 @@ fn dynamic_rate_model() {
         liquidation_contract: "liquidation".to_string(),
         collector_contract: "collector".to_string(),
         stable_denom: "uusd".to_string(),
-        epoch_period: 86400u64,
+        epoch_period: 1000u64,
         threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000000u64),
         target_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
         buffer_distribution_factor: Decimal256::percent(20),
@@ -1343,7 +1343,7 @@ fn dynamic_rate_model() {
     store_dynrate_state(
         deps.as_mut().storage,
         &DynrateState {
-            last_executed_height: env.block.height,
+            last_executed_time: env.block.time.seconds(),
             prev_yield_reserve: Decimal256::from_str("10000000000.0").unwrap(),
             rate_delta: Decimal256::zero(),
             update_vector: true,
@@ -1400,7 +1400,7 @@ fn dynamic_rate_model() {
     store_dynrate_state(
         deps.as_mut().storage,
         &DynrateState {
-            last_executed_height: env.block.height,
+            last_executed_time: env.block.height,
             prev_yield_reserve: Decimal256::from_str("100000.0").unwrap(),
             rate_delta: Decimal256::zero(),
             update_vector: true,

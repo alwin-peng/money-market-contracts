@@ -80,7 +80,7 @@ pub fn instantiate(
     store_dynrate_state(
         deps.storage,
         &DynrateState {
-            last_executed_height: env.block.height,
+            last_executed_time: env.block.time.seconds(),
             prev_yield_reserve: Decimal256::zero(),
             rate_delta: Decimal256::zero(),
             update_vector: true,
@@ -340,9 +340,12 @@ fn update_deposit_rate(
 
     // check whether its time to re-evaluate rate
     if !dynrate_state.prev_yield_reserve.is_zero()
-        && env.block.height > dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch
+        && env.block.time.seconds()
+            > dynrate_state.last_executed_time + dynrate_config.dyn_rate_epoch
     {
-        let blks = Uint256::from(env.block.height - dynrate_state.last_executed_height);
+        // passed time from the last executed time
+        let passed_time =
+            Uint256::from(env.block.time.seconds() - dynrate_state.last_executed_time);
 
         // yield reserve amt
         let yield_reserve = Decimal256::from_uint256(interest_buffer);
@@ -358,11 +361,12 @@ fn update_deposit_rate(
         }) / dynrate_state.prev_yield_reserve;
 
         // yr change per block
-        let mut yield_reserve_change_pb = yield_reserve_change / Decimal256::from_uint256(blks);
+        let mut yield_reserve_change_pb =
+            yield_reserve_change / Decimal256::from_uint256(passed_time);
 
         // increase expectation pb
         let increase_expectation_pb =
-            dynrate_config.dyn_rate_yr_increase_expectation / Decimal256::from_uint256(blks);
+            dynrate_config.dyn_rate_yr_increase_expectation / Decimal256::from_uint256(passed_time);
 
         // consider increase expectation
         yield_reserve_change_pb = if !yr_went_up {
@@ -397,7 +401,7 @@ fn update_deposit_rate(
         store_dynrate_state(
             deps.storage,
             &DynrateState {
-                last_executed_height: env.block.height,
+                last_executed_time: env.block.time.seconds(),
                 prev_yield_reserve: yield_reserve,
                 update_vector: yr_went_up,
                 rate_delta,
