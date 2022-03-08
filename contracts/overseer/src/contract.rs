@@ -534,10 +534,13 @@ pub fn update_epoch_state(
 
     // effective_deposit_rate = cur_exchange_rate / prev_exchange_rate
     // deposit_rate = (effective_deposit_rate - 1) / blocks
-    let effective_deposit_rate =
-        market_epoch_state.exchange_rate / overseer_epoch_state.prev_exchange_rate;
+    let dynrate_state_qry: DynrateState = read_dynrate_state(deps.storage)?;
+    let effective_deposit_rate = market_epoch_state.exchange_rate / overseer_epoch_state.prev_exchange_rate;
+
     let deposit_rate =
-        (effective_deposit_rate - Decimal256::one()) / Decimal256::from_uint256(blocks);
+        update_rate((effective_deposit_rate - Decimal256::one()) / Decimal256::from_uint256(blocks), 
+            dynrate_state_qry.rate_delta, 
+            dynrate_state_qry.update_vector);  
 
     // store updated epoch state
     store_epoch_state(
