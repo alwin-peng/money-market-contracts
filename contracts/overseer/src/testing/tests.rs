@@ -1423,7 +1423,7 @@ fn dynamic_rate_model() {
             attr("deposit_rate", "0.000000485474175533"),
             attr("exchange_rate", "1.25"),
             attr("aterra_supply", "1000000"),
-            attr("distributed_interest", "53148"),
+            attr("distributed_interest", "0"),
             attr("anc_purchase_amount", "200000")
         ]
     );
