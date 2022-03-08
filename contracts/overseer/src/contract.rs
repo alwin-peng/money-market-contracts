@@ -29,7 +29,7 @@ use moneymarket::overseer::{
 };
 use moneymarket::querier::{deduct_tax, query_balance};
 
-pub const BLOCKS_PER_YEAR: u128 = 4656810;
+pub const SECONDS_PER_YEAR: u128 = 31536000;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -360,35 +360,35 @@ fn update_deposit_rate(
             dynrate_state.prev_yield_reserve - yield_reserve
         }) / dynrate_state.prev_yield_reserve;
 
-        // yr change per block
-        let mut yield_reserve_change_pb =
+        // yr change per second
+        let mut yield_reserve_change_ps =
             yield_reserve_change / Decimal256::from_uint256(passed_time);
 
         // increase expectation pb
-        let increase_expectation_pb =
+        let increase_expectation_ps =
             dynrate_config.dyn_rate_yr_increase_expectation / Decimal256::from_uint256(passed_time);
 
         // consider increase expectation
-        yield_reserve_change_pb = if !yr_went_up {
-            yield_reserve_change + increase_expectation_pb
-        } else if yield_reserve_change_pb > increase_expectation_pb {
-            yield_reserve_change_pb - increase_expectation_pb
+        yield_reserve_change_ps = if !yr_went_up {
+            yield_reserve_change + increase_expectation_ps
+        } else if yield_reserve_change_ps > increase_expectation_ps {
+            yield_reserve_change_ps - increase_expectation_ps
         } else {
             // sign switched here
             yr_went_up = !yr_went_up;
-            increase_expectation_pb - yield_reserve_change_pb
+            increase_expectation_ps - yield_reserve_change_ps
         };
 
         // change exceeded rate threshold, need to update variable rate
-        // recalc values from confing to a per block
-        let year = Decimal256::from_uint256(BLOCKS_PER_YEAR);
-        let dynrate_maxchange_pb = dynrate_config.dyn_rate_maxchange / year;
-        let dynrate_threshold_pb = dynrate_config.dyn_rate_threshold / year;
+        // recalc values from confing to a per second
+        let year = Decimal256::from_uint256(SECONDS_PER_YEAR);
+        let dynrate_maxchange_ps = dynrate_config.dyn_rate_maxchange / year;
+        let dynrate_threshold_ps = dynrate_config.dyn_rate_threshold / year;
         let mut rate_delta = Decimal256::zero();
 
-        if yield_reserve_change_pb >= dynrate_threshold_pb {
-            // thats adjustment to a rate per block based on yr change
-            rate_delta = Decimal256::min(dynrate_maxchange_pb, yield_reserve_change_pb);
+        if yield_reserve_change_ps >= dynrate_threshold_ps {
+            // thats adjustment to a rate per second based on yr change
+            rate_delta = Decimal256::min(dynrate_maxchange_ps, yield_reserve_change_ps);
 
             // update rates (this happens only on dyn_rate_epoch!)
             config.target_deposit_rate =

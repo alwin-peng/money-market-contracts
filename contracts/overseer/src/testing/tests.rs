@@ -1272,13 +1272,13 @@ fn dynamic_rate_model() {
         liquidation_contract: "liquidation".to_string(),
         collector_contract: "collector".to_string(),
         stable_denom: "uusd".to_string(),
-        epoch_period: 1000u64,
+        epoch_period: 86400u64,
         threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000000u64),
         target_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
         buffer_distribution_factor: Decimal256::percent(20),
         anc_purchase_factor: Decimal256::percent(20),
         price_timeframe: 60u64,
-        dyn_rate_epoch: 86300u64,
+        dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.00011").unwrap(),
@@ -1352,6 +1352,8 @@ fn dynamic_rate_model() {
     .unwrap();
 
     env.block.height += 86400u64;
+    env.block.time = env.block.time.plus_seconds(86400u64);
+
     // (120 / 100 - 1) / 86400
     // deposit rate = 0.000002314814814814
     // accrued_buffer = 10,000,000,000
@@ -1400,7 +1402,7 @@ fn dynamic_rate_model() {
     store_dynrate_state(
         deps.as_mut().storage,
         &DynrateState {
-            last_executed_time: env.block.height,
+            last_executed_time: env.block.time.seconds(),
             prev_yield_reserve: Decimal256::from_str("100000.0").unwrap(),
             rate_delta: Decimal256::zero(),
             update_vector: true,
@@ -1409,6 +1411,7 @@ fn dynamic_rate_model() {
     .unwrap();
 
     env.block.height += 86400u64;
+    env.block.time = env.block.time.plus_seconds(86401u64);
 
     // accrued_buffer = 1,000,000
     // interest_buffer = 9,999,000,000
@@ -1420,7 +1423,7 @@ fn dynamic_rate_model() {
         res.attributes,
         vec![
             attr("action", "epoch_operations"),
-            attr("deposit_rate", "0.000000485474175533"),
+            attr("deposit_rate", "0.000000482728733298"),
             attr("exchange_rate", "1.25"),
             attr("aterra_supply", "1000000"),
             attr("distributed_interest", "0"),
