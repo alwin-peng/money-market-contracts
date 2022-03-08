@@ -269,7 +269,7 @@ pub fn compute_interest(
 
     let target_deposit_rate: Decimal256 =
         query_target_deposit_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
-        
+
     compute_interest_raw(
         state,
         block_height,

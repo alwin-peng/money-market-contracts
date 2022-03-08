@@ -1,7 +1,9 @@
 use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use crate::querier::query_epoch_state;
-use crate::state::{read_epoch_state, store_epoch_state, store_dynrate_state, EpochState, DynrateState};
+use crate::state::{
+    read_epoch_state, store_dynrate_state, store_epoch_state, DynrateState, EpochState,
+};
 use crate::testing::mock_querier::mock_dependencies;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
@@ -79,7 +81,7 @@ fn proper_initialization() {
             prev_aterra_supply: Uint256::zero(),
             prev_exchange_rate: Decimal256::one(),
             prev_interest_buffer: Uint256::zero(),
-         }
+        }
     );
 }
 
@@ -350,14 +352,14 @@ fn execute_epoch_operations() {
         stable_denom: "uusd".to_string(),
         epoch_period: 86400u64,
         threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
-        target_deposit_rate:Decimal256::from_ratio(1u64, 1000000u64),
+        target_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
         buffer_distribution_factor: Decimal256::percent(20),
         anc_purchase_factor: Decimal256::percent(20),
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
-        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),        
+        dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
     // we can just call .unwrap() to assert this was a success
@@ -1331,8 +1333,6 @@ fn dynamic_rate_model() {
         _ => panic!("DO NOT ENTER HERE"),
     }
 
-   
-
     // If deposit_rate is bigger than threshold_deposit_rate
     deps.querier.with_epoch_state(&[(
         &"market".to_string(),
@@ -1356,9 +1356,8 @@ fn dynamic_rate_model() {
     // deposit rate = 0.000002314814814814
     // accrued_buffer = 10,000,000,000
     // anc_purchase_amount = accrued_buffer * 0.2 = 2,000,000,000
-  
+
     let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
-    
 
     assert_eq!(
         res.attributes,
@@ -1373,7 +1372,7 @@ fn dynamic_rate_model() {
     );
 
     // store epoch state for test purpose
-    
+
     store_epoch_state(
         deps.as_mut().storage,
         &EpochState {
@@ -1381,11 +1380,10 @@ fn dynamic_rate_model() {
             prev_exchange_rate: Decimal256::from_str("1.2").unwrap(),
             prev_aterra_supply: Uint256::from_str("1000000").unwrap(),
             prev_interest_buffer: Uint256::from_str("9999000000").unwrap(),
-            deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),            
+            deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),
         },
     )
     .unwrap();
- 
 
     // If deposit rate is bigger than threshold
     deps.querier.with_epoch_state(&[(
@@ -1398,10 +1396,8 @@ fn dynamic_rate_model() {
         &[(&"uusd".to_string(), &Uint128::from(1000000u128))],
     );
 
-   
-
-      // lets screw up state to trigger rate update
-      store_dynrate_state(
+    // lets screw up state to trigger rate update
+    store_dynrate_state(
         deps.as_mut().storage,
         &DynrateState {
             last_executed_height: env.block.height,
@@ -1419,7 +1415,7 @@ fn dynamic_rate_model() {
     // (125 / 120 - 1) / 86400
     // deposit rate = 0.000000482253086419
     let res = execute(deps.as_mut(), env, info, msg).unwrap();
-  
+
     assert_eq!(
         res.attributes,
         vec![

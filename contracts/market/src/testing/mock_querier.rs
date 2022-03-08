@@ -252,7 +252,7 @@ impl WasmMockQuerier {
                         &AncEmissionRateResponse {
                             emission_rate: Decimal256::from_uint256(5u64),
                         },
-                    ))),                    
+                    ))),
                     QueryMsg::Config {} => {
                         SystemResult::Ok(ContractResult::from(to_binary(&ConfigResponse {
                             owner_addr: "".to_string(),

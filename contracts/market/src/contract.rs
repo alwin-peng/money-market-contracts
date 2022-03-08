@@ -552,7 +552,7 @@ pub fn query_epoch_state(
 
         let target_deposit_rate: Decimal256 =
             query_target_deposit_rate(deps, deps.api.addr_humanize(&config.overseer_contract)?)?;
-        
+
         // Compute interest rate to return latest epoch state
         compute_interest_raw(
             &mut state,

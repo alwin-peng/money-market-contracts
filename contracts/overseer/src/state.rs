@@ -29,7 +29,7 @@ pub struct Config {
     pub target_deposit_rate: Decimal256,
     pub buffer_distribution_factor: Decimal256,
     pub anc_purchase_factor: Decimal256,
-    pub price_timeframe: u64,   
+    pub price_timeframe: u64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -54,8 +54,8 @@ pub struct DynrateState {
     pub last_executed_height: u64,
     pub prev_yield_reserve: Decimal256,
     pub rate_delta: Decimal256,
-    pub update_vector: bool, 
-} 
+    pub update_vector: bool,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct WhitelistElem {
