@@ -61,7 +61,6 @@ pub fn instantiate(
         deps.storage,
         &DynrateConfig {
             dyn_rate_epoch: msg.dyn_rate_epoch,
-            dyn_rate_threshold: msg.dyn_rate_threshold,
             dyn_rate_maxchange: msg.dyn_rate_maxchange,
             dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
         },
@@ -95,7 +94,6 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response>
         deps.storage,
         &DynrateConfig {
             dyn_rate_epoch: msg.dyn_rate_epoch,
-            dyn_rate_threshold: msg.dyn_rate_threshold,
             dyn_rate_maxchange: msg.dyn_rate_maxchange,
             dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
         },
@@ -398,10 +396,9 @@ fn update_deposit_rate(deps: DepsMut, env: Env, deposit_rate: Decimal256) -> Std
         // recalc values from confing to a per block
         let year = Decimal256::from_uint256(BLOCKS_PER_YEAR);
         let dynrate_maxchange_pb = dynrate_config.dyn_rate_maxchange / year;
-        let dynrate_threshold_pb = dynrate_config.dyn_rate_threshold / year;
         let mut rate_delta = Decimal256::zero();
 
-        if yield_reserve_change_pb >= dynrate_threshold_pb {
+        if !yield_reserve_change_pb.is_zero() {
             // thats adjustment to a rate per block based on yr change
             rate_delta = Decimal256::min(dynrate_maxchange_pb, yield_reserve_change_pb);
 

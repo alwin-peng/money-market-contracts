@@ -42,7 +42,6 @@ fn proper_initialization() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -105,7 +104,6 @@ fn update_config() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -208,7 +206,6 @@ fn whitelist() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -358,7 +355,6 @@ fn execute_epoch_operations() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -586,7 +582,6 @@ fn update_epoch_state() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -736,7 +731,6 @@ fn lock_collateral() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -894,7 +888,6 @@ fn unlock_collateral() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -1108,7 +1101,6 @@ fn liquidate_collateral() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.015").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
     };
 
@@ -1280,7 +1272,6 @@ fn dynamic_rate_model() {
         price_timeframe: 60u64,
         dyn_rate_epoch: 86300u64,
         dyn_rate_maxchange: Decimal256::from_str("0.015").unwrap(),
-        dyn_rate_threshold: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.00011").unwrap(),
     };
 

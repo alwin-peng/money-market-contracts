@@ -37,8 +37,6 @@ pub struct InstantiateMsg {
     pub price_timeframe: u64,
     /// # of blocks per each dynamic rate change period
     pub dyn_rate_epoch: u64,
-    /// rate threshold to trigger rate update
-    pub dyn_rate_threshold: Decimal256,
     /// maximum rate change during update
     pub dyn_rate_maxchange: Decimal256,
     /// amout of slack in yr change to trigger rate update
@@ -50,8 +48,6 @@ pub struct InstantiateMsg {
 pub struct MigrateMsg {
     /// Period of time in blocks when rate is evaluated/changed
     pub dyn_rate_epoch: u64,
-    /// Threshold of YR change that triggers rate update
-    pub dyn_rate_threshold: Decimal256,
     /// Maximum allowed rate change per epoch
     pub dyn_rate_maxchange: Decimal256,
     /// Margin to define expectation of rate increase
