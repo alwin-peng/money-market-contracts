@@ -25,7 +25,8 @@ use moneymarket::custody::ExecuteMsg as CustodyExecuteMsg;
 use moneymarket::market::EpochStateResponse;
 use moneymarket::market::ExecuteMsg as MarketExecuteMsg;
 use moneymarket::overseer::{
-    ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg, WhitelistResponse, WhitelistResponseElem,
+    ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, WhitelistResponse,
+    WhitelistResponseElem,
 };
 use moneymarket::querier::{deduct_tax, query_balance};
 
@@ -85,6 +86,27 @@ pub fn instantiate(
         },
     )?;
 
+    Ok(Response::default())
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+    store_dynrate_config(
+        deps.storage,
+        &DynrateConfig {
+            dyn_rate_epoch: msg.dyn_rate_epoch,
+            dyn_rate_threshold: msg.dyn_rate_threshold,
+            dyn_rate_maxchange: msg.dyn_rate_maxchange,
+            dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
+        },
+    )?;
+    store_dynrate_state(
+        deps.storage,
+        &DynrateState {
+            last_executed_time: msg.last_executed_time,
+            prev_yield_reserve: msg.prev_yield_reserve,
+        },
+    )?;
     Ok(Response::default())
 }
 
