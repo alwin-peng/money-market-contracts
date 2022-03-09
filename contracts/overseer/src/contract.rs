@@ -82,8 +82,6 @@ pub fn instantiate(
         &DynrateState {
             last_executed_time: env.block.time.seconds(),
             prev_yield_reserve: Decimal256::zero(),
-            rate_delta: Decimal256::zero(),
-            update_vector: true,
         },
     )?;
 
@@ -403,19 +401,12 @@ fn update_deposit_rate(
             &DynrateState {
                 last_executed_time: env.block.time.seconds(),
                 prev_yield_reserve: yield_reserve,
-                update_vector: yr_went_up,
-                rate_delta,
             },
         )?;
-    };
 
-    // updating dep rate, this is outsite dynrate change epoch if
-    let dynrate_state_qry: DynrateState = read_dynrate_state(deps.storage)?;
-    deposit_rate = update_rate(
-        deposit_rate,
-        dynrate_state_qry.rate_delta,
-        dynrate_state_qry.update_vector,
-    );
+        // updating dep rate, this is outsite dynrate change epoch if
+        deposit_rate = update_rate(deposit_rate, rate_delta, yr_went_up);
+    };
 
     Ok(deposit_rate)
 }
@@ -649,7 +640,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             deps.api.addr_validate(&borrower)?,
             block_time,
         )?),
-        QueryMsg::DynrateState {} => to_binary(&query_state(deps)?),
+        QueryMsg::DynrateState {} => to_binary(&query_dynrate_state(deps)?),
     }
 }
 

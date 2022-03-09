@@ -53,8 +53,6 @@ pub struct EpochState {
 pub struct DynrateState {
     pub last_executed_time: u64,
     pub prev_yield_reserve: Decimal256,
-    pub rate_delta: Decimal256,
-    pub update_vector: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

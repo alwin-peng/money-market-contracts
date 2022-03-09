@@ -1345,8 +1345,6 @@ fn dynamic_rate_model() {
         &DynrateState {
             last_executed_time: env.block.time.seconds(),
             prev_yield_reserve: Decimal256::from_str("10000000000.0").unwrap(),
-            rate_delta: Decimal256::zero(),
-            update_vector: true,
         },
     )
     .unwrap();
@@ -1404,8 +1402,6 @@ fn dynamic_rate_model() {
         &DynrateState {
             last_executed_time: env.block.time.seconds(),
             prev_yield_reserve: Decimal256::from_str("100000.0").unwrap(),
-            rate_delta: Decimal256::zero(),
-            update_vector: true,
         },
     )
     .unwrap();
