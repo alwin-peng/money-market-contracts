@@ -48,7 +48,7 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct MigrateMsg {
-    /// Period of time in seconds when rate is evaluated/changed
+    /// Period of time in blocks when rate is evaluated/changed
     pub dyn_rate_epoch: u64,
     /// Threshold of YR change that triggers rate update
     pub dyn_rate_threshold: Decimal256,
@@ -56,8 +56,9 @@ pub struct MigrateMsg {
     pub dyn_rate_maxchange: Decimal256,
     /// Margin to define expectation of rate increase
     pub dyn_rate_yr_increase_expectation: Decimal256,
-    /// YR amount and timestamp
-    pub last_executed_time: u64,
+    /// timestamp related to YR value
+    pub last_executed_height: u64,
+    /// value of YR at a timestamp
     pub prev_yield_reserve: Decimal256,
 }
 
