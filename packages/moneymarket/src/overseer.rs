@@ -52,10 +52,6 @@ pub struct MigrateMsg {
     pub dyn_rate_maxchange: Decimal256,
     /// Margin to define expectation of rate increase
     pub dyn_rate_yr_increase_expectation: Decimal256,
-    /// timestamp related to YR value
-    pub last_executed_height: u64,
-    /// value of YR at a timestamp
-    pub prev_yield_reserve: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

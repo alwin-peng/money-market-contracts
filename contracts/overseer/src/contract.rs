@@ -89,7 +89,7 @@ pub fn instantiate(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> StdResult<Response> {
     store_dynrate_config(
         deps.storage,
         &DynrateConfig {
@@ -101,8 +101,8 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response>
     store_dynrate_state(
         deps.storage,
         &DynrateState {
-            last_executed_height: msg.last_executed_height,
-            prev_yield_reserve: msg.prev_yield_reserve,
+            last_executed_height: env.block.height,
+            prev_yield_reserve: Decimal256::zero(),
         },
     )?;
     Ok(Response::default())
@@ -355,6 +355,7 @@ fn update_deposit_rate(deps: DepsMut, env: Env, deposit_rate: Decimal256) -> Std
 
     // check whether its time to re-evaluate rate
     if !dynrate_state.prev_yield_reserve.is_zero()
+        && !interest_buffer.is_zero()
         && env.block.height > dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch
     {
         // passed time from the last executed time
@@ -421,6 +422,18 @@ fn update_deposit_rate(deps: DepsMut, env: Env, deposit_rate: Decimal256) -> Std
         // updating dep rate, this is outsite dynrate change epoch if
         new_deposit_rate = update_rate(new_deposit_rate, rate_delta, yr_went_up);
     };
+
+    // do a lazy initialization of state if needed
+    if dynrate_state.prev_yield_reserve.is_zero() && !interest_buffer.is_zero() {
+        store_dynrate_state(
+            deps.storage,
+            &DynrateState {
+                last_executed_height: env.block.height,
+                prev_yield_reserve: Decimal256::from_uint256(interest_buffer),
+            },
+        )?;
+    }
+
     Ok(new_deposit_rate)
 }
 
