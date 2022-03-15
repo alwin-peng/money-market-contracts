@@ -2,7 +2,7 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
-    Response, StdResult, Uint128, WasmMsg,
+    Response, StdResult, WasmMsg,
 };
 
 use crate::collateral::{
@@ -187,7 +187,6 @@ pub fn execute(
             let api = deps.api;
             liquidate_collateral(deps, env, info, api.addr_validate(&borrower)?)
         }
-        ExecuteMsg::FundReserve {} => fund_reserve(deps, info),
     }
 }
 
@@ -624,27 +623,6 @@ pub fn update_epoch_state(
             ),
             attr("interest_buffer", interest_buffer),
         ]))
-}
-
-pub fn fund_reserve(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
-    let sent_uusd = match info.funds.iter().find(|x| x.denom == "uusd") {
-        Some(coin) => coin.amount,
-        None => Uint128::zero(),
-    };
-
-    let mut overseer_epoch_state: EpochState = read_epoch_state(deps.storage)?;
-    overseer_epoch_state.prev_interest_buffer += Uint256::from(sent_uusd);
-    store_epoch_state(deps.storage, &overseer_epoch_state)?;
-
-    let mut overseer_dynrate_state: DynrateState = read_dynrate_state(deps.storage)?;
-    overseer_dynrate_state.prev_yield_reserve =
-        Decimal256::from_uint256(overseer_epoch_state.prev_interest_buffer);
-    store_dynrate_state(deps.storage, &overseer_dynrate_state)?;
-
-    Ok(Response::new().add_attributes(vec![
-        attr("action", "fund_reserve"),
-        attr("funded_amount", sent_uusd.to_string()),
-    ]))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
