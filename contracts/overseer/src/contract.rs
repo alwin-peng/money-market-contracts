@@ -356,7 +356,7 @@ fn update_deposit_rate(deps: DepsMut, env: Env, deposit_rate: Decimal256) -> Std
     // check whether its time to re-evaluate rate
     if !dynrate_state.prev_yield_reserve.is_zero()
         && !interest_buffer.is_zero()
-        && env.block.height > dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch
+        && env.block.height >= dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch
     {
         // passed time from the last executed time
         let blocks_count = Uint256::from(env.block.height - dynrate_state.last_executed_height);
