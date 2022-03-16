@@ -1,9 +1,7 @@
 use crate::contract::{execute, instantiate, query};
 use crate::error::ContractError;
 use crate::querier::query_epoch_state;
-use crate::state::{
-    read_epoch_state, store_dynrate_state, store_epoch_state, DynrateState, EpochState,
-};
+use crate::state::{read_epoch_state, store_epoch_state, EpochState};
 use crate::testing::mock_querier::mock_dependencies;
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
