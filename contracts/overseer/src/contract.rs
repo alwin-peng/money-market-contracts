@@ -384,7 +384,7 @@ fn update_deposit_rate(deps: DepsMut, env: Env, deposit_rate: Decimal256) -> Std
 
         // consider increase expectation
         yield_reserve_change_pb = if !yr_went_up {
-            yield_reserve_change + increase_expectation_pb
+            yield_reserve_change_pb + increase_expectation_pb
         } else if yield_reserve_change_pb > increase_expectation_pb {
             yield_reserve_change_pb - increase_expectation_pb
         } else {
