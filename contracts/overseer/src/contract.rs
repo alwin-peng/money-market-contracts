@@ -395,8 +395,9 @@ fn update_deposit_rate(deps: DepsMut, env: Env, deposit_rate: Decimal256) -> Std
 
         // change exceeded rate threshold, need to update variable rate
         // recalc values from confing to a per block
-        let year = Decimal256::from_uint256(BLOCKS_PER_YEAR);
-        let dynrate_maxchange_pb = dynrate_config.dyn_rate_maxchange / year;
+        let _year = Decimal256::from_uint256(BLOCKS_PER_YEAR);
+        let dynrate_maxchange_pb =
+            dynrate_config.dyn_rate_maxchange / Decimal256::from_uint256(blocks_count);
         let mut rate_delta = Decimal256::zero();
 
         if !yield_reserve_change_pb.is_zero() {
