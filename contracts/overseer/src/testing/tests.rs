@@ -1449,14 +1449,14 @@ fn dynamic_rate_model() {
     )
     .unwrap();
     env.block.height += 86400u64;
-    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    let _res = execute(deps.as_mut(), env, info, msg).unwrap();
     validate_deposit_rates(
         deps.as_mut(),
         Decimal256::from_ratio(5000023148146991u64, 1000000000000000000u64),
     );
 }
 
-fn validate_deposit_rates(deps: DepsMut, rate: Decimal256) -> () {
+fn validate_deposit_rates(deps: DepsMut, rate: Decimal256) {
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();
     let config_res: ConfigResponse = from_binary(&query_res).unwrap();
     assert_eq!(
