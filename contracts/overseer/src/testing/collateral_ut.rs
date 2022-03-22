@@ -33,6 +33,8 @@ fn proper_compute_borrow_limit() {
         dyn_rate_epoch: 86400u64,
         dyn_rate_maxchange: Decimal256::from_str("0.03").unwrap(),
         dyn_rate_yr_increase_expectation: Decimal256::from_str("0.01").unwrap(),
+        dyn_rate_min: Decimal256::zero(),
+        dyn_rate_max: Decimal256::one()
     };
 
     // we can just call .unwrap() to assert this was a success

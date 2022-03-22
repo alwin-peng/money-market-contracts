@@ -4,7 +4,7 @@ use cosmwasm_std::{
     attr, to_binary, Addr, BankMsg, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo,
     Response, StdResult, WasmMsg,
 };
-use std::cmp::min;
+use std::cmp::{max, min};
 
 use crate::collateral::{
     liquidate_collateral, lock_collateral, query_all_collaterals, query_borrow_limit,
@@ -64,6 +64,8 @@ pub fn instantiate(
             dyn_rate_epoch: msg.dyn_rate_epoch,
             dyn_rate_maxchange: msg.dyn_rate_maxchange,
             dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
+            dyn_rate_min: msg.dyn_rate_min,
+            dyn_rate_max: msg.dyn_rate_max,
         },
     )?;
 
@@ -97,6 +99,8 @@ pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> StdResult<Response> 
             dyn_rate_epoch: msg.dyn_rate_epoch,
             dyn_rate_maxchange: msg.dyn_rate_maxchange,
             dyn_rate_yr_increase_expectation: msg.dyn_rate_yr_increase_expectation,
+            dyn_rate_min: msg.dyn_rate_min,
+            dyn_rate_max: msg.dyn_rate_max,
         },
     )?;
     store_dynrate_state(
@@ -408,6 +412,12 @@ fn update_deposit_rate(deps: DepsMut, env: Env) -> StdResult<()> {
 
         // convert from yearly rate to block rate
         new_rate = new_rate / blocks_per_year;
+
+        // clamp new rate
+        new_rate = max(
+            min(new_rate, dynrate_config.dyn_rate_max),
+            dynrate_config.dyn_rate_min,
+        );
 
         config.target_deposit_rate = new_rate;
         config.threshold_deposit_rate = new_rate;

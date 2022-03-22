@@ -40,8 +40,11 @@ pub struct InstantiateMsg {
     pub dyn_rate_epoch: u64,
     /// maximum rate change during update
     pub dyn_rate_maxchange: Decimal256,
-    /// amout of slack in yr change to trigger rate update
+    /// amount of slack in yr change to trigger rate update
     pub dyn_rate_yr_increase_expectation: Decimal256,
+    /// clamps for dyn rate
+    pub dyn_rate_min: Decimal256,
+    pub dyn_rate_max: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -53,6 +56,9 @@ pub struct MigrateMsg {
     pub dyn_rate_maxchange: Decimal256,
     /// Margin to define expectation of rate increase
     pub dyn_rate_yr_increase_expectation: Decimal256,
+
+    pub dyn_rate_min: Decimal256,
+    pub dyn_rate_max: Decimal256,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
