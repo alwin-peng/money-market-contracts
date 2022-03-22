@@ -1,4 +1,4 @@
-use crate::contract::{execute, instantiate, query};
+use crate::contract::{BLOCKS_PER_YEAR, execute, instantiate, query};
 use crate::error::ContractError;
 use crate::querier::query_epoch_state;
 use crate::state::{
@@ -1247,214 +1247,215 @@ fn liquidate_collateral() {
     );
 }
 
-// #[test]
-// fn dynamic_rate_model() {
-//     let mut deps = mock_dependencies(&[Coin {
-//         denom: "uusd".to_string(),
-//         amount: Uint128::from(10000000000u128),
-//     }]);
-//
-//     let info = mock_info("owner", &[]);
-//     let msg = InstantiateMsg {
-//         owner_addr: "owner".to_string(),
-//         oracle_contract: "oracle".to_string(),
-//         market_contract: "market".to_string(),
-//         liquidation_contract: "liquidation".to_string(),
-//         collector_contract: "collector".to_string(),
-//         stable_denom: "uusd".to_string(),
-//         epoch_period: 86400u64,
-//         threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
-//         target_deposit_rate: Decimal256::permille(5),
-//         buffer_distribution_factor: Decimal256::percent(20),
-//         anc_purchase_factor: Decimal256::percent(20),
-//         price_timeframe: 60u64,
-//         dyn_rate_epoch: 8600u64,
-//         dyn_rate_maxchange: Decimal256::permille(5),
-//         dyn_rate_yr_increase_expectation: Decimal256::permille(1),
-//     };
-//
-//     // we can just call .unwrap() to assert this was a success
-//     let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
-//
-//     // store whitelist elems
-//     let msg = ExecuteMsg::Whitelist {
-//         name: "bluna".to_string(),
-//         symbol: "bluna".to_string(),
-//         collateral_token: "bluna".to_string(),
-//         custody_contract: "custody_bluna".to_string(),
-//         max_ltv: Decimal256::percent(60),
-//     };
-//
-//     let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
-//
-//     let msg = ExecuteMsg::Whitelist {
-//         name: "batom".to_string(),
-//         symbol: "batom".to_string(),
-//         collateral_token: "batom".to_string(),
-//         custody_contract: "custody_batom".to_string(),
-//         max_ltv: Decimal256::percent(60),
-//     };
-//
-//     let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
-//
-//     // only contract itself can execute update_epoch_state
-//     let msg = ExecuteMsg::UpdateEpochState {
-//         interest_buffer: Uint256::from(10000000000u128),
-//         distributed_interest: Uint256::from(1000000u128),
-//     };
-//     let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
-//     match res {
-//         Err(ContractError::Unauthorized {}) => (),
-//         _ => panic!("DO NOT ENTER HERE"),
-//     }
-//
-//     // Assume execute epoch operation is executed
-//     let mut env = mock_env();
-//     let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
-//     env.block.height += 86400u64;
-//
-//     deps.querier.with_epoch_state(&[(
-//         &"market".to_string(),
-//         &(Uint256::from(1000000u64), Decimal256::percent(120)),
-//     )]);
-//
-//     let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
-//     assert_eq!(
-//         res.messages,
-//         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-//             contract_addr: "market".to_string(),
-//             funds: vec![],
-//             msg: to_binary(&MarketExecuteMsg::ExecuteEpochOperations {
-//                 deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),
-//                 target_deposit_rate: Decimal256::permille(5),
-//                 threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
-//                 distributed_interest: Uint256::from(1000000u128),
-//             })
-//             .unwrap(),
-//         }))]
-//     );
-//     assert_eq!(
-//         res.attributes,
-//         vec![
-//             attr("action", "update_epoch_state"),
-//             attr("deposit_rate", "0.000002314814814814"),
-//             attr("aterra_supply", "1000000"),
-//             attr("exchange_rate", "1.2"),
-//             attr("interest_buffer", "10000000000"),
-//         ]
-//     );
-//
-//     // Deposit rate increased
-//     deps.querier.with_epoch_state(&[(
-//         &"market".to_string(),
-//         &(Uint256::from(1000000u64), Decimal256::percent(125)),
-//     )]);
-//
-//     env.block.height += 86400u64;
-//     let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
-//     assert_eq!(
-//         res.messages,
-//         vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-//             contract_addr: "market".to_string(),
-//             funds: vec![],
-//             msg: to_binary(&MarketExecuteMsg::ExecuteEpochOperations {
-//                 deposit_rate: Decimal256::from_str("0.000000482253086419").unwrap(),
-//                 target_deposit_rate: Decimal256::permille(5),
-//                 threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
-//                 distributed_interest: Uint256::from(1000000u128),
-//             })
-//             .unwrap(),
-//         }))]
-//     );
-//     assert_eq!(
-//         res.attributes,
-//         vec![
-//             attr("action", "update_epoch_state"),
-//             attr("deposit_rate", "0.000000482253086419"),
-//             attr("aterra_supply", "1000000"),
-//             attr("exchange_rate", "1.25"),
-//             attr("interest_buffer", "10000000000"),
-//         ]
-//     );
-//
-//     let epoch_state_response = query_epoch_state(
-//         deps.as_ref(),
-//         Addr::unchecked("market"),
-//         env.block.height,
-//         None,
-//     )
-//     .unwrap();
-//     let epoch_state = read_epoch_state(deps.as_ref().storage).unwrap();
-//
-//     assert_eq!(
-//         epoch_state,
-//         EpochState {
-//             deposit_rate: Decimal256::from_ratio(482253086419u64, 1000000000000000000u64),
-//             prev_aterra_supply: epoch_state_response.aterra_supply,
-//             prev_exchange_rate: epoch_state_response.exchange_rate,
-//             prev_interest_buffer: Uint256::from(10000000000u128),
-//             last_executed_height: env.block.height,
-//         }
-//     );
-//
-//     // (5000000000000000 - 4999988425925926) * 86400 -> 1 permille drop
-//     validate_deposit_rates(
-//         deps.as_mut(),
-//         Decimal256::from_ratio(4999988425925926u64, 1000000000000000000u64),
-//     );
-//
-//     // ----- YR unchanged
-//     // (4999988425925926 - 4999976851851852) * 86400 = 1e15 = 1 permille, dropped as expected
-//     store_dynrate_state(
-//         deps.as_mut().storage,
-//         &DynrateState {
-//             last_executed_height: env.block.height,
-//             prev_yield_reserve: Decimal256::from_str("10000000000").unwrap(),
-//         },
-//     )
-//     .unwrap();
-//     env.block.height += 86400u64;
-//     let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
-//     validate_deposit_rates(
-//         deps.as_mut(),
-//         Decimal256::from_ratio(4999976851851852u64, 1000000000000000000u64),
-//     );
-//
-//     // ----- YR increasing dramarically
-//     // (5000034722222222 - 4999976851851852) * 86400 = 5 permille, max amount, correct
-//     store_dynrate_state(
-//         deps.as_mut().storage,
-//         &DynrateState {
-//             last_executed_height: env.block.height,
-//             prev_yield_reserve: Decimal256::from_str("1000000000").unwrap(),
-//         },
-//     )
-//     .unwrap();
-//     env.block.height += 86400u64;
-//     let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
-//     validate_deposit_rates(
-//         deps.as_mut(),
-//         Decimal256::from_ratio(5000034722222222u64, 1000000000000000000u64),
-//     );
-//
-//     // ----- YR increasing a little
-//     // (5000034722222222 - 5000023148146991) * 86400 = 1.0000001e15
-//     // this is
-//     store_dynrate_state(
-//         deps.as_mut().storage,
-//         &DynrateState {
-//             last_executed_height: env.block.height,
-//             prev_yield_reserve: Decimal256::from_str("10000000001").unwrap(),
-//         },
-//     )
-//     .unwrap();
-//     env.block.height += 86400u64;
-//     let _res = execute(deps.as_mut(), env, info, msg).unwrap();
-//     validate_deposit_rates(
-//         deps.as_mut(),
-//         Decimal256::from_ratio(5000023148146991u64, 1000000000000000000u64),
-//     );
-// }
+#[test]
+fn dynamic_rate_model() {
+    let mut deps = mock_dependencies(&[Coin {
+        denom: "uusd".to_string(),
+        amount: Uint128::from(10000000000u128),
+    }]);
+
+    let info = mock_info("owner", &[]);
+    let msg = InstantiateMsg {
+        owner_addr: "owner".to_string(),
+        oracle_contract: "oracle".to_string(),
+        market_contract: "market".to_string(),
+        liquidation_contract: "liquidation".to_string(),
+        collector_contract: "collector".to_string(),
+        stable_denom: "uusd".to_string(),
+        epoch_period: 86400u64,
+        threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
+        target_deposit_rate: Decimal256::permille(5),
+        buffer_distribution_factor: Decimal256::percent(20),
+        anc_purchase_factor: Decimal256::percent(20),
+        price_timeframe: 60u64,
+        dyn_rate_epoch: 8600u64,
+        dyn_rate_maxchange: Decimal256::permille(5),
+        dyn_rate_yr_increase_expectation: Decimal256::permille(1),
+    };
+
+    // we can just call .unwrap() to assert this was a success
+    let _res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+    // store whitelist elems
+    let msg = ExecuteMsg::Whitelist {
+        name: "bluna".to_string(),
+        symbol: "bluna".to_string(),
+        collateral_token: "bluna".to_string(),
+        custody_contract: "custody_bluna".to_string(),
+        max_ltv: Decimal256::percent(60),
+    };
+
+    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
+
+    let msg = ExecuteMsg::Whitelist {
+        name: "batom".to_string(),
+        symbol: "batom".to_string(),
+        collateral_token: "batom".to_string(),
+        custody_contract: "custody_batom".to_string(),
+        max_ltv: Decimal256::percent(60),
+    };
+
+    let _res = execute(deps.as_mut(), mock_env(), info.clone(), msg);
+
+    // only contract itself can execute update_epoch_state
+    let msg = ExecuteMsg::UpdateEpochState {
+        interest_buffer: Uint256::from(10000000000u128),
+        distributed_interest: Uint256::from(1000000u128),
+    };
+    let res = execute(deps.as_mut(), mock_env(), info, msg.clone());
+    match res {
+        Err(ContractError::Unauthorized {}) => (),
+        _ => panic!("DO NOT ENTER HERE"),
+    }
+
+    // Assume execute epoch operation is executed
+    let mut env = mock_env();
+    let info = mock_info(MOCK_CONTRACT_ADDR, &[]);
+    env.block.height += 86400u64;
+
+    deps.querier.with_epoch_state(&[(
+        &"market".to_string(),
+        &(Uint256::from(1000000u64), Decimal256::percent(120)),
+    )]);
+
+    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    assert_eq!(
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: "market".to_string(),
+            funds: vec![],
+            msg: to_binary(&MarketExecuteMsg::ExecuteEpochOperations {
+                deposit_rate: Decimal256::from_str("0.000002314814814814").unwrap(),
+                target_deposit_rate: Decimal256::permille(5),
+                threshold_deposit_rate: Decimal256::from_ratio(1u64, 1000000u64),
+                distributed_interest: Uint256::from(1000000u128),
+            })
+            .unwrap(),
+        }))]
+    );
+    assert_eq!(
+        res.attributes,
+        vec![
+            attr("action", "update_epoch_state"),
+            attr("deposit_rate", "0.000002314814814814"),
+            attr("aterra_supply", "1000000"),
+            attr("exchange_rate", "1.2"),
+            attr("interest_buffer", "10000000000"),
+        ]
+    );
+
+    // Deposit rate increased
+    deps.querier.with_epoch_state(&[(
+        &"market".to_string(),
+        &(Uint256::from(1000000u64), Decimal256::percent(125)),
+    )]);
+
+    env.block.height += 86400u64;
+    let res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+
+    assert_eq!(
+        res.messages,
+        vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: "market".to_string(),
+            funds: vec![],
+            msg: to_binary(&MarketExecuteMsg::ExecuteEpochOperations {
+                deposit_rate: Decimal256::from_str("0.000000482253086419").unwrap(),
+                target_deposit_rate: Decimal256::from_str("0.000001001073696371").unwrap(),
+                threshold_deposit_rate: Decimal256::from_str("0.000001001073696371").unwrap(),
+                distributed_interest: Uint256::from(1000000u128),
+            })
+            .unwrap(),
+        }))]
+    );
+    assert_eq!(
+        res.attributes,
+        vec![
+            attr("action", "update_epoch_state"),
+            attr("deposit_rate", "0.000000482253086419"),
+            attr("aterra_supply", "1000000"),
+            attr("exchange_rate", "1.25"),
+            attr("interest_buffer", "10000000000"),
+        ]
+    );
+
+    let epoch_state_response = query_epoch_state(
+        deps.as_ref(),
+        Addr::unchecked("market"),
+        env.block.height,
+        None,
+    )
+    .unwrap();
+    let epoch_state = read_epoch_state(deps.as_ref().storage).unwrap();
+
+    assert_eq!(
+        epoch_state,
+        EpochState {
+            deposit_rate: Decimal256::from_ratio(482253086419u64, 1000000000000000000u64),
+            prev_aterra_supply: epoch_state_response.aterra_supply,
+            prev_exchange_rate: epoch_state_response.exchange_rate,
+            prev_interest_buffer: Uint256::from(10000000000u128),
+            last_executed_height: env.block.height,
+        }
+    );
+
+    // (5000000000000000 - 4999988425925926) * 86400 -> 1 permille drop
+    validate_deposit_rates(
+        deps.as_mut(),
+        Decimal256::from_ratio(1000858957096u64, 1000000000000000000u64),
+    );
+
+    // ----- YR unchanged
+    // (4999988425925926 - 4999976851851852) * 86400 = 1e15 = 1 permille, dropped as expected
+    store_dynrate_state(
+        deps.as_mut().storage,
+        &DynrateState {
+            last_executed_height: env.block.height,
+            prev_yield_reserve: Decimal256::from_str("10000000000").unwrap(),
+        },
+    )
+    .unwrap();
+    env.block.height += 86400u64;
+    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    validate_deposit_rates(
+        deps.as_mut(),
+        Decimal256::from_ratio(1000644217821u64, 1000000000000000000u64),
+    );
+
+    // ----- YR increasing dramarically
+    // (5000034722222222 - 4999976851851852) * 86400 = 5 permille, max amount, correct
+    store_dynrate_state(
+        deps.as_mut().storage,
+        &DynrateState {
+            last_executed_height: env.block.height,
+            prev_yield_reserve: Decimal256::from_str("1000000000").unwrap(),
+        },
+    )
+    .unwrap();
+    env.block.height += 86400u64;
+    let _res = execute(deps.as_mut(), env.clone(), info.clone(), msg.clone()).unwrap();
+    validate_deposit_rates(
+        deps.as_mut(),
+        Decimal256::from_ratio(1001717914192u64, 1000000000000000000u64),
+    );
+
+    // ----- YR increasing a little
+    // (5000034722222222 - 5000023148146991) * 86400 = 1.0000001e15
+    // this is
+    store_dynrate_state(
+        deps.as_mut().storage,
+        &DynrateState {
+            last_executed_height: env.block.height,
+            prev_yield_reserve: Decimal256::from_str("10000000001").unwrap(),
+        },
+    )
+    .unwrap();
+    env.block.height += 86400u64;
+    let _res = execute(deps.as_mut(), env, info, msg).unwrap();
+    validate_deposit_rates(
+        deps.as_mut(),
+        Decimal256::from_ratio(1001503174896u64, 1000000000000000000u64),
+    );
+}
 
 fn validate_deposit_rates(deps: DepsMut, rate: Decimal256) {
     let query_res = query(deps.as_ref(), mock_env(), QueryMsg::Config {}).unwrap();

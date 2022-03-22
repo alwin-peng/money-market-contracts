@@ -351,15 +351,14 @@ fn update_deposit_rate(deps: DepsMut, env: Env) -> StdResult<()> {
     let dynrate_state: DynrateState = read_dynrate_state(deps.storage)?;
     let mut config: Config = read_config(deps.storage)?;
 
-    // retrieve interest buffer
-    let interest_buffer = query_balance(
-        deps.as_ref(),
-        env.contract.address.clone(),
-        config.stable_denom.to_string(),
-    )?;
-
     // check whether its time to re-evaluate rate
     if !env.block.height >= dynrate_state.last_executed_height + dynrate_config.dyn_rate_epoch {
+        // retrieve interest buffer
+        let interest_buffer = query_balance(
+            deps.as_ref(),
+            env.contract.address.clone(),
+            config.stable_denom.to_string(),
+        )?;
         // convert block rate into yearly rate
         let blocks_per_year = Decimal256::from_ratio(Uint256::from(BLOCKS_PER_YEAR), 1);
         let current_rate = config.threshold_deposit_rate * blocks_per_year;
@@ -385,7 +384,7 @@ fn update_deposit_rate(deps: DepsMut, env: Env) -> StdResult<()> {
 
         // decreases the yield reserve change by dyn_rate_yr_increase_expectation
         // (assume (yr_went_up, yield_reserve_change) is one signed integer, this just subtracts
-        // that integer by dynrate_config.dyn_rate_yr_increase_expectation
+        // that integer by dynrate_config.dyn_rate_yr_increase_expectation)
         let increase_expectation = dynrate_config.dyn_rate_yr_increase_expectation;
         yield_reserve_change = if !yr_went_up {
             yield_reserve_change + increase_expectation
