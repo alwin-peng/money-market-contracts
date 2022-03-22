@@ -103,11 +103,17 @@ pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> StdResult<Response> 
             dyn_rate_max: msg.dyn_rate_max,
         },
     )?;
+    let config = read_config(deps.storage)?;
+    let prev_yield_reserve = query_balance(
+        deps.as_ref(),
+        env.contract.address.clone(),
+        config.stable_denom.to_string(),
+    )?;
     store_dynrate_state(
         deps.storage,
         &DynrateState {
             last_executed_height: env.block.height,
-            prev_yield_reserve: Decimal256::zero(),
+            prev_yield_reserve: Decimal256::from_ratio(prev_yield_reserve, 1),
         },
     )?;
     Ok(Response::default())
@@ -406,8 +412,7 @@ fn update_deposit_rate(deps: DepsMut, env: Env) -> StdResult<()> {
         } else if current_rate > yield_reserve_change {
             current_rate - yield_reserve_change
         } else {
-            // should never drop rate to 0 -- just half it
-            current_rate / Decimal256::from_ratio(2, 1)
+            Decimal256::zero()
         };
 
         // convert from yearly rate to block rate
